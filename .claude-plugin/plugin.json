@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "scopewright",
+  "version": "0.1.0",
+  "description": "Interactively scaffold a SCOPED review subagent tailored to your project. You supply the domain; it prescribes the read-only, injection-resistant structure.",
+  "author": {
+    "name": "Jonathon W. Marshall",
+    "email": "jonathon.marshall@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "scoped",
+    "code-review",
+    "plan-review",
+    "subagent",
+    "scaffold",
+    "generator",
+    "review"
+  ]
+}
