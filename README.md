@@ -40,6 +40,23 @@ A SCOPED reviewer follows the framework's six sections in dependency order and:
 - issues verdicts (e.g. `[APPROVED]` / `[REJECTED]`) to its Caller and escalates with
   `[FAILED: …]` instead of acting on state or asking humans directly.
 
+## Bundled reviewer: `root-prompt-reviewer`
+
+The plugin also ships a ready-made SCOPED reviewer you can invoke directly — no
+interview required. **`root-prompt-reviewer`** audits a repository's root prompts
+(`CLAUDE.md`, `AGENTS.md`) — the instructions that execute on _every_ inference — for:
+
+- **token economy** — conversational filler and bloat that taxes every message;
+- **safety guardrails** — missing limits on destructive actions (DB mutations, file
+  deletions, quota burn) without human-in-the-loop confirmation;
+- **orchestration architecture** — context stuffing that belongs in `/commands` or
+  Skills, non-universal rules, premise-ordering failures, and unstructured prose.
+
+It scores the target against six dimensions and returns an `[APPROVED]` / `[REJECTED]`
+verdict with a dimension scorecard and line-cited fixes. The pass/fail standard lives in
+[`reference/ROOT_PROMPT_DESIGN_RUBRIC.md`](./reference/ROOT_PROMPT_DESIGN_RUBRIC.md),
+which the agent reads at runtime. Like every SCOPED reviewer it is strictly read-only.
+
 ## The SCOPED framework
 
 **SCOPED** stands for **S**pecifications, **C**onstraints, **O**bjective,

@@ -1,5 +1,5 @@
 ---
-name: agent-prompt-reviewer
+name: root-prompt-reviewer
 description: Specialist for evaluating repository root prompts (CLAUDE.md, AGENTS.md). Produces a structured audit on token efficiency, safety guardrails, and orchestration architecture. Invoke when a Caller needs a read-only verdict on whether a root prompt is ruthlessly efficient and safely structured.
 tools: Read, Grep, Glob
 disallowedTools: Write, Edit, NotebookEdit
