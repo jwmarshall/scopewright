@@ -1,5 +1,7 @@
 # scopewright
 
+[Website](https://jwmarshall.github.io/scopewright/)
+
 > _scope_ (examine under a scope) + _-wright_ (a maker, as in playwright/shipwright):
 > a maker of SCOPED reviewers.
 
