@@ -14,9 +14,26 @@ defenses, and clear verdict authority.
 
 ## Usage
 
+Claude Code:
+
 ```
 /scopewright:create [what the reviewer should evaluate]
 ```
+
+Pi (and other Agent Skills-compatible agents):
+
+```bash
+pi install git:github.com/jwmarshall/scopewright
+# or, while developing locally:
+pi install ./path/to/scopewright
+```
+
+Then use `/skill:scopewright-create [what the reviewer should evaluate]`. The pi
+workflow writes a portable reviewer skill to `.agents/skills/<name>/SKILL.md`; invoke
+that reviewer with `/skill:<name>`. Pi does not have native subagents, so the reviewer
+runs as an on-demand skill in the current session rather than as a delegated worker.
+The generated reviewer remains read-only by instruction and should be invoked with
+`<target_files>` paths (or the raw-data mode selected during its interview).
 
 The skill will:
 
@@ -137,6 +154,19 @@ assistant" drift ("looks mostly good…") that undermine real review.
 Together these defend against the framework's named anti-patterns — action-taking,
 reflexive politeness, prompt injection through unprotected context, and token-wasting
 theatrical role-play.
+
+## Multi-agent design
+
+The durable artifact is the SCOPED reviewer prompt, not a harness-specific agent
+file. Claude Code currently consumes the bundled `agents/` definitions and its
+`skills/create` skill. Pi consumes the package manifest's `skills/pi/` resources and
+uses Agent Skills under `.agents/skills/`. This keeps the interview and reviewer
+format portable while allowing each harness to provide its own invocation mechanism.
+
+For another coding agent, expose `skills/pi/` (or the generated `.agents/skills/`
+directory) through that agent's Agent Skills integration. If an agent has a native
+subagent format, add a thin adapter that embeds the same generated S/C/O/P/E/D body;
+do not fork the review criteria.
 
 ## Reference
 

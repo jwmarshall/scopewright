@@ -1,0 +1,10 @@
+{
+  "name": "scopewright",
+  "version": "0.1.0",
+  "description": "SCOPED read-only review agents for Claude Code, pi, and other Agent Skills-compatible harnesses.",
+  "license": "MIT",
+  "keywords": ["pi-package", "agent-skills", "code-review", "scoped"],
+  "pi": {
+    "skills": ["./skills/pi"]
+  }
+}
