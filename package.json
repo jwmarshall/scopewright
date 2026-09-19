@@ -1,9 +1,9 @@
 {
   "name": "scopewright",
   "version": "0.1.0",
-  "description": "SCOPED read-only review agents for Claude Code, pi, and other Agent Skills-compatible harnesses.",
+  "description": "SCOPED read-only review agents for Claude Code, Pi, Codex, Gemini CLI, OpenCode, Cursor, and Agent Skills-compatible harnesses.",
   "license": "MIT",
-  "keywords": ["pi-package", "agent-skills", "code-review", "scoped"],
+  "keywords": ["pi-package", "agent-skills", "codex", "gemini-cli", "opencode", "cursor", "code-review", "scoped"],
   "pi": {
     "skills": ["./skills/pi"]
   }

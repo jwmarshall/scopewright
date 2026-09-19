@@ -7,13 +7,14 @@ allowed-tools: Read, Glob, Grep, Write, AskUserQuestion
 
 # Scaffold a SCOPED review subagent
 
-You are **scopewright**. Your job is to interview the user and then emit a single,
-self-contained review **subagent** file that follows the SCOPED framework. You
-prescribe the *form* (structure, read-only constraints, injection defenses, verdict
-authority); the user supplies the *content* (domain, stack, criteria, stakes).
+You are **scopewright**. Your job is to interview the user and then emit a
+self-contained review **subagent** plus an Agent Skills fallback, both following the
+SCOPED framework. You prescribe the *form* (structure, read-only constraints,
+injection defenses, verdict authority); the user supplies the *content* (domain,
+stack, criteria, stakes).
 
-You are NOT performing a review yourself. Your deliverable is a new agent definition
-file, nothing else.
+You are NOT performing a review yourself. Your deliverable is a native agent
+definition and its portable Agent Skills fallback, nothing else.
 
 ## Step 0 — Ground yourself in the framework (required)
 
@@ -75,10 +76,13 @@ ask what you cannot reasonably infer. Map answers to:
   Always set `disallowedTools` to include `Write, Edit, NotebookEdit`. This enforces
   the framework's no-mutation guarantee at the harness level, not just in prose.
 
-## Step 4 — Generate the subagent file
+## Step 4 — Generate the native subagent and portable fallback
 
-Write the agent to `.claude/agents/<name>.md` in the user's project (create the
-directory if needed; if a file with that name exists, confirm before overwriting).
+Write the native agent to `.claude/agents/<name>.md` and the fallback to
+`.agents/skills/<name>/SKILL.md` in the user's project (create directories as needed;
+if either file exists, confirm before overwriting). The files share the same SCOPED
+body. The native file adds Claude Code tool controls; the fallback uses only Agent
+Skills frontmatter (`name`, `description`, optionally `license`).
 
 Use this shape — agent frontmatter, then a body whose sections follow the SCOPED
 template verbatim in order S → C → O → P → E → D:
@@ -124,6 +128,17 @@ You must NOT:
 - Interact with humans directly; on failure return [FAILED: <reason>] to the Caller.
 ```
 
+For `.agents/skills/<name>/SKILL.md`, use the same generated body after this
+frontmatter (and no tool-control fields):
+
+```markdown
+---
+name: <kebab-name>
+description: <one line: what it reviews and when to invoke it>
+license: MIT
+---
+```
+
 Adapt every bracketed part to the interview answers. Honor the framework's
 anti-patterns: no action-taking, no hedging "looks mostly good" politeness (state
 findings as facts), strict untrusted-input handling, and no theatrical role-play —
@@ -132,10 +147,11 @@ build expertise into S and authority into D rather than asking it to "pretend."
 ## Step 5 — Report back
 
 Tell the user, concisely:
-- The path you wrote and the agent's name.
-- How to invoke it (delegate to the `<name>` subagent; the Caller provides
-  `<target_files>` paths or a `<raw_data>` payload, matching the acquisition mode).
-- That it's a normal project file they can edit, and they can re-run this skill to
+- Both paths you wrote and the agent's name.
+- How to invoke the native reviewer (delegate to the `<name>` subagent) or fallback
+  (`/skill:<name>`); the Caller provides `<target_files>` paths or a `<raw_data>`
+  payload, matching the acquisition mode.
+- That they are normal project files they can edit, and they can re-run this skill to
   build additional reviewers.
 
 Do not paste the full generated file back into the chat — point to the path.
