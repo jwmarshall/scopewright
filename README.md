@@ -5,8 +5,9 @@
 > _scope_ (examine under a scope) + _-wright_ (a maker, as in playwright/shipwright):
 > a maker of SCOPED reviewers.
 
-**scopewright** scaffolds read-only **review subagents** for Claude Code, built on
-the [SCOPED framework](./reference/SCOPED_FRAMEWORK_V4.md). It doesn't review your
+**scopewright** scaffolds read-only **review subagents** for Claude Code, Codex,
+Gemini CLI, OpenCode, Cursor, and Agent Skills-compatible harnesses, built on the
+[SCOPED framework](./reference/SCOPED_FRAMEWORK_V4.md). It doesn't review your
 code — it interviews you and _writes a reviewer_ tailored to your project. You supply
 the domain (runtime, language, criteria, stakes); scopewright prescribes the form:
 dependency-ordered S/C/O/P/E/D structure, strict read-only constraints, prompt-injection
@@ -20,7 +21,7 @@ Claude Code:
 /scopewright:create [what the reviewer should evaluate]
 ```
 
-Pi (and other Agent Skills-compatible agents):
+Pi:
 
 ```bash
 pi install git:github.com/jwmarshall/scopewright
@@ -28,23 +29,38 @@ pi install git:github.com/jwmarshall/scopewright
 pi install ./path/to/scopewright
 ```
 
-Then use `/skill:scopewright-create [what the reviewer should evaluate]`. The pi
-workflow writes a portable reviewer skill to `.agents/skills/<name>/SKILL.md`; invoke
-that reviewer with `/skill:<name>`. Pi does not have native subagents, so the reviewer
-runs as an on-demand skill in the current session rather than as a delegated worker.
-The generated reviewer remains read-only by instruction and should be invoked with
-`<target_files>` paths (or the raw-data mode selected during its interview).
+Then use `/skill:scopewright-create [what the reviewer should evaluate]`.
+
+Codex, Gemini CLI, OpenCode, and Cursor discover the checked-in
+`.agents/skills/` directory. Install or link this repository so that directory is
+available to the project, then invoke `scopewright-create` as a skill. It creates both
+a portable reviewer at `.agents/skills/<name>/SKILL.md` and, after selecting the
+harness, its native adapter:
+
+| Harness | Native reviewer output | Invocation |
+| --- | --- | --- |
+| Codex | `.codex/agents/<name>.toml` | ask Codex to delegate to `<name>` |
+| Gemini CLI | `.gemini/agents/<name>.md` | `@<name> <target_files>…` |
+| OpenCode | `.opencode/agents/<name>.md` | `@<name> <target_files>…` |
+| Cursor | `.cursor/agents/<name>.md` | `/<name> <target_files>…` |
+
+Pi has no native subagent format, so it invokes the generated portable skill with
+`/skill:<name>` in the current session. Every reviewer accepts `<target_files>` paths
+(or the raw-data mode selected during its interview) and remains read-only by
+instruction.
 
 The skill will:
 
 1. Read the bundled SCOPED specification.
 2. Inspect your project and interview you for each SCOPED section (Specifications,
    Constraints, Objective, Purpose, Execution standards, Decision authority).
-3. Write a tailored review subagent to `.claude/agents/<name>.md` — configured
-   read-only (`Write`/`Edit`/`NotebookEdit` disallowed) so it can only return verdicts,
-   never mutate state.
+3. Write a tailored portable reviewer to `.agents/skills/<name>/SKILL.md` and, for a
+   selected native harness, its adapter in that harness's agent directory. Claude Code
+   writes `.claude/agents/<name>.md`, configured with
+   `Write`/`Edit`/`NotebookEdit` disallowed; the other adapters use their documented
+   read-only control.
 
-The result is an ordinary project subagent you can invoke, edit, and version. Re-run
+The result is an ordinary project reviewer you can invoke, edit, and version. Re-run
 the skill to build additional reviewers (security audit, contract review, design
 critique, writing feedback, data-quality checks, and so on).
 
@@ -61,7 +77,7 @@ A SCOPED reviewer follows the framework's six sections in dependency order and:
 
 ## Bundled reviewer: `root-prompt-reviewer`
 
-The plugin also ships a ready-made SCOPED reviewer you can invoke directly — no
+The package also ships a ready-made SCOPED reviewer you can invoke directly — no
 interview required. **`root-prompt-reviewer`** audits a repository's root prompts
 (`CLAUDE.md`, `AGENTS.md`) — the instructions that execute on _every_ inference — for:
 
@@ -158,15 +174,16 @@ theatrical role-play.
 ## Multi-agent design
 
 The durable artifact is the SCOPED reviewer prompt, not a harness-specific agent
-file. Claude Code currently consumes the bundled `agents/` definitions and its
-`skills/create` skill. Pi consumes the package manifest's `skills/pi/` resources and
-uses Agent Skills under `.agents/skills/`. This keeps the interview and reviewer
-format portable while allowing each harness to provide its own invocation mechanism.
+file. Claude Code consumes `agents/` definitions and `skills/create`; Pi consumes the
+package manifest's `skills/pi/`; and the portable `.agents/skills/` resources work in
+Codex, Gemini CLI, OpenCode, and Cursor. Native adapters live in `.codex/agents/`,
+`.gemini/agents/`, `.opencode/agents/`, and `.cursor/agents/` respectively. They keep
+the same S/C/O/P/E/D body and add each harness's read-only control; they never fork
+review criteria.
 
-For another coding agent, expose `skills/pi/` (or the generated `.agents/skills/`
-directory) through that agent's Agent Skills integration. If an agent has a native
-subagent format, add a thin adapter that embeds the same generated S/C/O/P/E/D body;
-do not fork the review criteria.
+Aider supports repository instruction files and read-only review workflows, but has no
+custom-subagent or Agent Skills format. Scopewright therefore does not claim native
+Aider delegation; use the portable reviewer prompt as a checked-in convention there.
 
 ## Reference
 
