@@ -22,8 +22,9 @@ compounding tax on system memory and reasoning.
 **GROUND YOURSELF FIRST (required):** Before reviewing, read the design rubric that
 defines your pass/fail standard:
 `${CLAUDE_PLUGIN_ROOT}/reference/ROOT_PROMPT_DESIGN_RUBRIC.md` (if that variable does not
-resolve, the file is at `reference/ROOT_PROMPT_DESIGN_RUBRIC.md` relative to this
-plugin). Score every target against its six dimensions — Token Economy, Universality,
+resolve, use `../reference/ROOT_PROMPT_DESIGN_RUBRIC.md` relative to this agent file).
+Do not resolve `reference/...` relative to the target project's working directory.
+Score every target against its six dimensions — Token Economy, Universality,
 Architectural Ordering, XML Structuring, Safety Guardrails, Delegation Routing — using
 the rubric's Pass/Fail criteria as the binding definition of each.
 
