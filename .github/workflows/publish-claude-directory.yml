@@ -1,0 +1,69 @@
+name: Publish Claude directory update
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .claude-plugin/plugin.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: claude-directory-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect plugin version change
+        id: version
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_version="$(jq -er '.version | select(type == "string" and length > 0)' .claude-plugin/plugin.json)"
+          previous_version=""
+
+          if [[ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]; then
+            previous_manifest="$(git show "$BEFORE_SHA:.claude-plugin/plugin.json" 2>/dev/null || true)"
+            if [[ -n "$previous_manifest" ]]; then
+              previous_version="$(jq -r '.version // empty' <<<"$previous_manifest")"
+            fi
+          fi
+
+          if [[ "$current_version" == "$previous_version" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Plugin version is unchanged ($current_version); skipping directory update."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Plugin version changed: ${previous_version:-<none>} -> $current_version"
+          fi
+
+      - name: Notify Claude directory
+        if: steps.version.outputs.changed == 'true'
+        env:
+          CLAUDE_WEBHOOK_API_KEY: ${{ secrets.CLAUDE_WEBHOOK_API_KEY }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${CLAUDE_WEBHOOK_API_KEY:?CLAUDE_WEBHOOK_API_KEY secret is required}"
+
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "x-api-key: ${CLAUDE_WEBHOOK_API_KEY}" \
+            --header "X-GitHub-Event: push" \
+            --header "X-GitHub-Delivery: ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --header "Content-Type: application/json" \
+            --data-binary "@${GITHUB_EVENT_PATH}" \
+            "https://api.anthropic.com/directory-webhooks/github/bd4a975f-4f15-4298-b977-748870603502/jwmarshall/scopewright"
