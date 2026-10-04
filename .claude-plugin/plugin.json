@@ -2,7 +2,6 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin.json",
   "name": "scopewright",
   "version": "0.1.0",
-  "icon": ".claude-plugin/icon.png",
   "homepage": "https://jwmarshall.github.io/scopewright/",
   "repository": "https://github.com/jwmarshall/scopewright",
   "description": "Scaffold a SCOPED read-only reviewer with a Claude Code subagent and portable Agent Skills fallback. You supply the domain; it prescribes the injection-resistant structure.",
