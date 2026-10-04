@@ -174,8 +174,9 @@ theatrical role-play.
 ## Multi-agent design
 
 The durable artifact is the SCOPED reviewer prompt, not a harness-specific agent
-file. Claude Code consumes `agents/` definitions and `skills/create`; Pi consumes the
-package manifest's `skills/pi/`; and the portable `.agents/skills/` resources work in
+file. Claude Code consumes `agents/` definitions and skills directly under `skills/`;
+Pi consumes the package manifest's `pi-skills/`; and the portable `.agents/skills/`
+resources work in
 Codex, Gemini CLI, OpenCode, and Cursor. Native adapters live in `.codex/agents/`,
 `.gemini/agents/`, `.opencode/agents/`, and `.cursor/agents/` respectively. They keep
 the same S/C/O/P/E/D body and add each harness's read-only control; they never fork

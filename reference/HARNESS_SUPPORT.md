@@ -7,7 +7,7 @@ linked vendor documentation in March 2026.
 | Harness | Portable fallback | Native adapter | Read-only enforcement |
 | --- | --- | --- | --- |
 | Claude Code | Plugin skill | `.claude/agents/<name>.md` | `disallowedTools` |
-| Pi | `skills/pi/` package resource / Agent Skills | No native subagents | Prompt-only |
+| Pi | `pi-skills/` package resource / Agent Skills | No native subagents | Prompt-only |
 | Codex | `.agents/skills/<name>/SKILL.md` | `.codex/agents/<name>.toml` | `sandbox_mode = "read-only"` |
 | Gemini CLI | `.agents/skills/<name>/SKILL.md` | `.gemini/agents/<name>.md` | Explicit `read_file` / `grep_search` tool allowlist |
 | OpenCode | `.agents/skills/<name>/SKILL.md` | `.opencode/agents/<name>.md` | `edit: deny`, `bash: deny` permissions |

@@ -7,7 +7,7 @@ license: MIT
 # Create a portable SCOPED reviewer
 
 You generate a reviewer; you do not perform its review. First read
-`../../../reference/SCOPED_FRAMEWORK_V4.md` relative to this skill directory when it
+`../../reference/SCOPED_FRAMEWORK_V4.md` relative to this skill directory when it
 exists. Preserve its S → C → O → P → E → D order and read-only posture.
 
 ## Interview

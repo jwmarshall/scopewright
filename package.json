@@ -5,6 +5,6 @@
   "license": "MIT",
   "keywords": ["pi-package", "agent-skills", "codex", "gemini-cli", "opencode", "cursor", "code-review", "scoped"],
   "pi": {
-    "skills": ["./skills/pi"]
+    "skills": ["./pi-skills"]
   }
 }
