@@ -51,6 +51,7 @@ jobs:
         if: steps.version.outputs.changed == 'true'
         env:
           CLAUDE_WEBHOOK_API_KEY: ${{ secrets.CLAUDE_WEBHOOK_API_KEY }}
+          CLAUDE_DIRECTORY_WEBHOOK_URL: ${{ secrets.CLAUDE_DIRECTORY_WEBHOOK_URL }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
@@ -58,6 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           : "${CLAUDE_WEBHOOK_API_KEY:?CLAUDE_WEBHOOK_API_KEY secret is required}"
+          : "${CLAUDE_DIRECTORY_WEBHOOK_URL:?CLAUDE_DIRECTORY_WEBHOOK_URL secret is required}"
 
           curl --fail-with-body --silent --show-error \
             --request POST \
@@ -66,4 +68,4 @@ jobs:
             --header "X-GitHub-Delivery: ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
             --header "Content-Type: application/json" \
             --data-binary "@${GITHUB_EVENT_PATH}" \
-            "https://api.anthropic.com/directory-webhooks/github/bd4a975f-4f15-4298-b977-748870603502/jwmarshall/scopewright"
+            "${CLAUDE_DIRECTORY_WEBHOOK_URL}"
