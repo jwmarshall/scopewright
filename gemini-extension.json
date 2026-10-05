@@ -1,0 +1,5 @@
+{
+  "name": "scopewright",
+  "version": "0.1.1",
+  "description": "Create portable, read-only SCOPED review skills and subagents for Gemini CLI and other AI coding harnesses."
+}

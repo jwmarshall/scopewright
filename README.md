@@ -31,6 +31,20 @@ pi install ./path/to/scopewright
 
 Then use `/skill:scopewright-create [what the reviewer should evaluate]`.
 
+For Gemini CLI, install this repository as an extension to get the bundled skills:
+
+```bash
+gemini extensions install https://github.com/jwmarshall/scopewright
+```
+
+The release workflow validates the manifest and publishes a Gemini-only archive
+(with the portable skills, Gemini reviewer agent, and required references, excluding
+other harness adapters) when you push a `v<version>` tag matching
+`gemini-extension.json`. Gemini CLI prefers that archive on installation. Its public
+extension gallery indexes public repositories automatically: add the
+`gemini-cli-extension` topic to this repository's GitHub About section once. The
+crawler discovers repositories with that topic and a valid root manifest.
+
 Codex, Gemini CLI, OpenCode, and Cursor discover the checked-in
 `.agents/skills/` directory. Install or link this repository so that directory is
 available to the project, then invoke `scopewright-create` as a skill. It creates both

@@ -1,6 +1,6 @@
 ---
 name: create
-description: Scaffold a new SCOPED review subagent tailored to a project. Use when the user wants to create, build, or generate a reviewer/auditor/evaluator agent (code review, security audit, contract review, design critique, writing feedback, data-quality checks, etc.). Drives an interactive SCOPED interview, then writes a read-only review subagent to .claude/agents/.
+description: Claude Code-only compatibility skill for creating a SCOPED review subagent. For Gemini CLI and other harnesses, use scopewright-create instead.
 argument-hint: "[what the reviewer should evaluate]"
 allowed-tools: Read, Glob, Grep, Write(./.claude/agents/**), Write(./.agents/skills/**), AskUserQuestion
 ---
