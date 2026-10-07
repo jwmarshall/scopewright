@@ -45,6 +45,14 @@ extension gallery indexes public repositories automatically: add the
 `gemini-cli-extension` topic to this repository's GitHub About section once. The
 crawler discovers repositories with that topic and a valid root manifest.
 
+Cursor users can install Scopewright from the Cursor Marketplace after it is
+approved. The plugin manifest at `.cursor-plugin/plugin.json` packages the bundled
+skills and the Cursor reviewer agent. To test it before publication, clone the
+repository into `~/.cursor/plugins/local/scopewright` (Cursor only loads local plugin
+directories from that location), then restart Cursor. Marketplace submissions are
+reviewed manually at <https://cursor.com/marketplace/publish>; the repository must be
+public and open source.
+
 Codex, Gemini CLI, OpenCode, and Cursor discover the checked-in
 `.agents/skills/` directory. Install or link this repository so that directory is
 available to the project, then invoke `scopewright-create` as a skill. It creates both

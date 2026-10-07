@@ -1,0 +1,21 @@
+{
+  "name": "scopewright",
+  "version": "0.1.1",
+  "description": "Create portable, read-only SCOPED reviewers tailored to your project.",
+  "author": {
+    "name": "Jonathon W. Marshall",
+    "email": "jonathon.marshall@gmail.com"
+  },
+  "homepage": "https://jwmarshall.github.io/scopewright/",
+  "repository": "https://github.com/jwmarshall/scopewright",
+  "license": "MIT",
+  "keywords": [
+    "agent-skills",
+    "code-review",
+    "subagents",
+    "scoped"
+  ],
+  "logo": ".claude-plugin/icon.png",
+  "skills": "skills",
+  "agents": ".cursor/agents"
+}
