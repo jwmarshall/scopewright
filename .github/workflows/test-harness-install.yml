@@ -1,0 +1,62 @@
+name: Test harness installation guidance
+
+on:
+  pull_request:
+    paths:
+      - README.md
+      - reference/HARNESS_SUPPORT.md
+      - package.json
+      - gemini-extension.json
+      - agents/**
+      - pi-skills/**
+      - skills/**
+      - .agents/**
+      - .claude-plugin/**
+      - .codex/**
+      - .cursor-plugin/**
+      - .cursor/**
+      - .gemini/**
+      - .opencode/**
+      - .github/scripts/test-harness-install.mjs
+      - .github/workflows/test-harness-install.yml
+  push:
+    branches: [main]
+    paths:
+      - README.md
+      - reference/HARNESS_SUPPORT.md
+      - package.json
+      - gemini-extension.json
+      - agents/**
+      - pi-skills/**
+      - skills/**
+      - .agents/**
+      - .claude-plugin/**
+      - .codex/**
+      - .cursor-plugin/**
+      - .cursor/**
+      - .gemini/**
+      - .opencode/**
+      - .github/scripts/test-harness-install.mjs
+      - .github/workflows/test-harness-install.yml
+
+permissions:
+  contents: read
+
+jobs:
+  install-contract:
+    name: ${{ matrix.harness }} install contract
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        harness: [claude, pi, codex, gemini, opencode, cursor]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check documented installation and package artifacts
+        run: node .github/scripts/test-harness-install.mjs "${{ matrix.harness }}"
+      - name: Validate with Gemini CLI
+        if: matrix.harness == 'gemini'
+        run: npx --yes @google/gemini-cli@0.62.0 extensions validate .
