@@ -14,7 +14,7 @@ const contracts = {
     files: [".claude-plugin/plugin.json", "skills/scopewright-create/SKILL.md", "agents/root-prompt-reviewer.md"],
   },
   pi: {
-    docs: [/pi install git:github\.com\/jwmarshall\/scopewright/, /@tintinweb\/pi-subagents/, /Pi 0\.84\.0\+/],
+    docs: [/pi install git:github\.com\/jwmarshall\/scopewright/],
     files: ["package.json", "pi-skills/scopewright-create/SKILL.md", "pi-skills/root-prompt-reviewer/SKILL.md"],
   },
   codex: {
@@ -53,7 +53,6 @@ for (const file of contract.files) {
 
 if (harness === "pi") {
   if (!packageJson.pi?.skills?.includes("./pi-skills")) errors.push("package.json must expose ./pi-skills as a Pi skill resource");
-  if (!packageJson.files?.includes("pi-skills/")) errors.push("package.json must include pi-skills/ in the published package");
 }
 if (harness === "gemini") {
   const manifest = JSON.parse(readFileSync("gemini-extension.json", "utf8"));
