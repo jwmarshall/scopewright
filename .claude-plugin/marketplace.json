@@ -1,0 +1,13 @@
+{
+  "name": "scopewright",
+  "owner": {
+    "name": "Jonathon W. Marshall"
+  },
+  "plugins": [
+    {
+      "name": "scopewright",
+      "source": "./",
+      "description": "Create portable SCOPED reviewers with native read-only agent adapters."
+    }
+  ]
+}
