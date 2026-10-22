@@ -1,62 +1,93 @@
-name: Test harness installation guidance
+name: Real harness installation and discovery
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - README.md
-      - reference/HARNESS_SUPPORT.md
+      - reference/**
       - package.json
-      - gemini-extension.json
-      - agents/**
-      - pi-skills/**
+      - package-lock.json
       - skills/**
-      - .agents/**
+      - agents/**
+      - .agents/agents/**
+      - .antigravity/**
+      - .claude/**
       - .claude-plugin/**
       - .codex/**
       - .cursor-plugin/**
       - .cursor/**
       - .gemini/**
+      - .omp/**
       - .opencode/**
-      - .github/scripts/test-harness-install.mjs
-      - .github/workflows/test-harness-install.yml
+      - scripts/**
+      - tests/harnesses/**
+      - .github/scripts/**
+      - .github/workflows/**
   push:
     branches: [main]
     paths:
       - README.md
-      - reference/HARNESS_SUPPORT.md
+      - reference/**
       - package.json
-      - gemini-extension.json
-      - agents/**
-      - pi-skills/**
+      - package-lock.json
       - skills/**
-      - .agents/**
+      - agents/**
+      - .agents/agents/**
+      - .antigravity/**
+      - .claude/**
       - .claude-plugin/**
       - .codex/**
       - .cursor-plugin/**
       - .cursor/**
       - .gemini/**
+      - .omp/**
       - .opencode/**
-      - .github/scripts/test-harness-install.mjs
-      - .github/workflows/test-harness-install.yml
+      - scripts/**
+      - tests/harnesses/**
+      - .github/scripts/**
+      - .github/workflows/**
 
 permissions:
   contents: read
 
 jobs:
-  install-contract:
-    name: ${{ matrix.harness }} install contract
+  install-discovery:
+    name: ${{ matrix.harness }} real install
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        harness: [claude, pi, codex, gemini, opencode, cursor]
+        harness: [claude, codex, pi, omp, antigravity, gemini, opencode, cursor]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Check documented installation and package artifacts
-        run: node .github/scripts/test-harness-install.mjs "${{ matrix.harness }}"
-      - name: Validate with Gemini CLI
-        if: matrix.harness == 'gemini'
-        run: npx --yes @google/gemini-cli@0.62.0 extensions validate .
+      - name: Check native adapters match canonical skills
+        run: npm run check
+      - name: Build pinned CLI image (no credentials)
+        run: node .github/scripts/test-harness-install.mjs "${{ matrix.harness }}" --build-only
+      - name: Install package and exercise real discovery (no network or model calls)
+        run: node .github/scripts/test-harness-install.mjs "${{ matrix.harness }}" --run-only
+      - name: Summarize exercised coverage
+        if: success()
+        env:
+          HARNESS: ${{ matrix.harness }}
+        run: |
+          echo "## $HARNESS" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pinned real CLI installation and version checks passed inside Docker." >> "$GITHUB_STEP_SUMMARY"
+          if [ "$HARNESS" = cursor ]; then
+            echo "**Plugin/skill discovery: SKIPPED**, not passed. Cursor requires an authenticated account or the interactive app; its installed CLI exposes no credential-free inventory/validation command or official loader SDK." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Skill discovery and bundled-resource assertions passed using the real CLI or matching official installed SDK loader." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "$HARNESS" = codex ]; then
+            echo "**Native subagent validation: unverified.** Codex parses custom agent TOML lazily at spawn and exposes no offline custom-agent validation/list API." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "$HARNESS" = antigravity ]; then
+            echo "Native plugin directory and archive-roundtrip installs passed agy plugin list --json inventory checks for two skills and one reviewer agent; bundled references were preserved." >> "$GITHUB_STEP_SUMMARY"
+            echo "**Native agent tool policy/execution: unverified.** This smoke checks the real CLI inventory, not parsed effective tool policy or model-backed execution." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "No credentials supplied; no model invocation; runtime networking disabled." >> "$GITHUB_STEP_SUMMARY"

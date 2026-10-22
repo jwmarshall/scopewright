@@ -1,10 +1,36 @@
 {
   "name": "scopewright",
-  "version": "0.1.1",
-  "description": "SCOPED read-only review agents for Claude Code, Pi, Codex, Gemini CLI, OpenCode, Cursor, and Agent Skills-compatible harnesses.",
+  "version": "0.2.0",
+  "description": "SCOPED read-only reviewers for Claude Code, Codex, Pi, OhMyPi, Antigravity CLI, legacy Gemini CLI, OpenCode, and Cursor.",
   "license": "MIT",
-  "keywords": ["pi-package", "agent-skills", "codex", "gemini-cli", "opencode", "cursor", "code-review", "scoped"],
+  "keywords": ["pi-package", "agent-skills", "codex", "oh-my-pi", "antigravity", "gemini-cli", "opencode", "cursor", "code-review", "scoped"],
+  "scripts": {
+    "sync:agents": "node scripts/sync-agents.mjs",
+    "check": "node scripts/sync-agents.mjs --check",
+    "package:gemini": "node scripts/package-gemini.mjs",
+    "package:antigravity": "node scripts/package-antigravity.mjs"
+  },
+  "files": [
+    "skills/",
+    "agents/",
+    ".agents/agents/",
+    ".antigravity/",
+    ".claude/",
+    ".claude-plugin/",
+    ".cursor-plugin/",
+    ".codex/",
+    ".cursor/",
+    ".gemini/",
+    ".opencode/",
+    ".omp/",
+    "scripts/sync-agents.mjs",
+    "scripts/package-gemini.mjs",
+    "scripts/package-antigravity.mjs",
+    "reference/",
+    "README.md",
+    "LICENSE"
+  ],
   "pi": {
-    "skills": ["./pi-skills"]
+    "skills": ["./skills"]
   }
 }
