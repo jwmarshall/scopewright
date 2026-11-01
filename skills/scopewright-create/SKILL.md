@@ -33,6 +33,22 @@ Recommend Antigravity for Google individual accounts; Gemini CLI remains availab
 For Pi, generate only the portable skill; DO NOT claim a built-in native subagent format.
 Pi extensions can add subagents, but extension-specific formats are outside this skill's output contract.
 
+## Model selection
+
+Default to the parent session's exact provider and model, including its authentication connection.
+Keep specialization and tool permissions separate from model selection; NEVER infer a vendor from an agent's role or harness name.
+Portable skills MUST NOT contain model or provider configuration.
+For native adapters, omit model/provider fields unless the configuration table below explicitly requires `model: inherit`.
+DO NOT pin model IDs, thinking levels, or provider-specific aliases by default.
+
+Only add a model pin when the user explicitly requests it and the installed harness documents the field.
+Validate the exact provider/model against the harness's available models when discovery is available; do not read credentials or claim authentication was verified by inventory alone.
+If availability cannot be established, disclose that limit before generating the pin.
+If a requested model is unavailable, report it instead of silently substituting another model or provider.
+Treat fast/balanced/reasoning profiles as optional harness features, NOT universal frontmatter fields.
+Use a profile only when the installed harness supports it and the user has configured its mapping; otherwise inherit.
+Never invent vendor-equivalent models or cross-provider fallbacks.
+
 ## Generate matching outputs
 
 Always generate a self-contained portable Agent Skill at the selected project location:
@@ -82,7 +98,7 @@ For OpenCode, preserve permission order: wildcard deny first, specific read-only
 
 ## Explain discovery and safety
 
-Report both paths, the confirmed name, and the selected harness's invocation:
+Report both paths, the confirmed name, the model-selection mode (inherited or explicitly pinned, with any validation limits), and the selected harness's invocation:
 
 - Claude Code: ask the parent to use the named agent; plugin agent identifiers include the plugin namespace.
 - Codex: ask the parent to delegate to the named custom agent.

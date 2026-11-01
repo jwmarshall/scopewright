@@ -6,7 +6,8 @@
   "keywords": ["pi-package", "agent-skills", "codex", "oh-my-pi", "antigravity", "gemini-cli", "opencode", "cursor", "code-review", "scoped"],
   "scripts": {
     "sync:agents": "node scripts/sync-agents.mjs",
-    "check": "node scripts/sync-agents.mjs --check",
+    "check": "node scripts/sync-agents.mjs --check && npm test",
+    "test": "node --test tests/*.test.mjs",
     "package:gemini": "node scripts/package-gemini.mjs",
     "package:antigravity": "node scripts/package-antigravity.mjs"
   },
@@ -26,6 +27,7 @@
     "scripts/sync-agents.mjs",
     "scripts/package-gemini.mjs",
     "scripts/package-antigravity.mjs",
+    "tests/*.test.mjs",
     "reference/",
     "README.md",
     "LICENSE"

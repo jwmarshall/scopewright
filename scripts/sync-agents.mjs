@@ -26,6 +26,9 @@ const identity = `name: ${name}\ndescription: ${JSON.stringify(description)}\n`;
 const markdown = fields => `---\n${fields}---\n\n${generated}${body}`;
 const gemini = markdown(`${identity}kind: local\ntools: [read_file, grep_search, glob, list_directory]\n`);
 const claude = markdown(`${identity}tools: Read, Grep, Glob\ndisallowedTools: Write, Edit, NotebookEdit, Bash, Agent\n`);
+// Inherit the parent's provider/model: omit pins and thinking defaults. Only
+// Antigravity and Cursor use an explicit native `model: inherit` below.
+// tests/model-inheritance.test.mjs guards this contract across every adapter.
 const outputs = {
   '.claude/agents/root-prompt-reviewer.md': claude,
   'agents/root-prompt-reviewer.md': claude,

@@ -156,6 +156,30 @@ The portable reviewer uses `.agents/skills/<name>/SKILL.md` where supported;
 the creator uses the active harness's skill directory when needed.
 Every reviewer accepts target file paths or the raw-data mode selected in its interview.
 
+### Provider and model selection
+
+Reviewers inherit the parent session's provider and model by default. They do not
+require Anthropic or automatically choose a different vendor for a particular role.
+Portable skills contain no model settings; native adapters omit model/provider
+settings or use the harness's documented `model: inherit` option.
+Only an explicit user request should introduce a model pin. Provider connections
+matter: subscription-backed and API-key-backed connections are not interchangeable.
+
+With the optional `@tintinweb/pi-subagents` extension, its built-in `Explore` may
+pin an Anthropic model independently of Scopewright. Eject/override that agent via
+`/agents`, then **remove** its `model` field to inherit Pi's current session model.
+Preserve the original prompt and tool restrictions. Use the exact `name: Explore`;
+a lowercase `explore` is a separate agent. A distinct filename such as
+`~/.pi/agent/agents/explore-inherit.md` avoids colliding with an existing lowercase
+file on case-insensitive filesystems. Do not edit installed package files.
+Agent configuration can override a tool call's `model` argument, so changing only
+the argument may not remove a pin. Scopewright does not require this extension.
+
+Optional fast/balanced/reasoning routing belongs in the harness and requires
+user-configured mappings to available models. Scopewright does not implement these
+profiles or emit unsupported profile fields. Without a configured mapping, inherit;
+never guess a vendor-equivalent model or silently cross providers.
+
 ## What it produces
 
 A SCOPED reviewer follows the framework's six sections in dependency order and:
@@ -271,7 +295,8 @@ so installing a single skill never loses its framework or rubric.
 `npm run package:gemini` stages the separate legacy Gemini extension.
 
 The canonical reviewer lives in `skills/root-prompt-reviewer/SKILL.md`.
-`npm run sync:agents` generates the harness adapters; `npm run check` rejects drift.
+`npm run sync:agents` generates the harness adapters; `npm run check` rejects drift
+and runs the provider-neutral model-selection regression tests (`npm test`).
 Edit the canonical skill or generator, not generated agent files.
 Root `agents/` follows Claude's plugin convention. `.claude/agents/` also supports
 project installation. Antigravity's manifest source is `.antigravity/plugin.json`;

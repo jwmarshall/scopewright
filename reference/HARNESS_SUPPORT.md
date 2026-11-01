@@ -39,6 +39,39 @@ For bundled native agents installed by copying, copy the single adapter into its
 native project directory. The embedded rubric makes that adapter self-contained.
 A generic skills installer installs the portable skills, **not** the agent adapters.
 
+## Provider-neutral model selection
+
+Bundled adapters inherit the parent session's provider and model. Antigravity and
+Cursor declare `model: inherit`; Claude Code, Codex, OhMyPi, Gemini CLI, and OpenCode
+omit model/provider fields. Pi's portable skills run in the current session and
+contain no model configuration. No bundled adapter selects a vendor, model ID, or
+thinking level based on the reviewer's role.
+
+The creator follows the same default. Explicit user-requested pins use only fields
+supported by the installed harness; availability and authentication limits must be
+disclosed. A provider ID identifies a connection, not just a vendor: do not replace
+a subscription-backed provider with an API-key-backed provider automatically.
+Never silently substitute a different provider or an assumed equivalent model.
+
+Companion extensions have independent defaults. In `@tintinweb/pi-subagents`, remove
+an ejected agent's `model` field to inherit; do not emit a literal `model: inherit`
+for this extension. Its agent configuration can outrank the caller's model argument.
+Override the exact agent name and preserve its prompt/tool controls rather than
+patching installed dependencies. See the [README](../README.md#provider-and-model-selection)
+for the built-in `Explore` workaround.
+
+Fast/balanced/reasoning profiles are a possible harness-level optimization, not a
+Scopewright runtime feature. They require explicit user mappings, capability and
+provider checks, visible effective-model reporting, and parent-model fallback when
+an unpinned profile has no mapping. An explicit unavailable pin should produce a
+clear error, not an implicit fallback. Model inventory alone does not prove that
+credentials will refresh or an inference request will succeed.
+
+`npm test` checks metadata in all eight generated adapters and both portable skills,
+rejects provider/model pins and thinking-level defaults, and exercises generation
+in a fresh temporary directory. These are configuration-contract tests, not
+model-backed cross-provider execution tests.
+
 ## Google harnesses and migration
 
 Use Antigravity CLI for new Google installations:
