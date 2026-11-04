@@ -86,6 +86,10 @@ jobs:
           if [ "$HARNESS" = codex ]; then
             echo "**Native subagent validation: unverified.** Codex parses custom agent TOML lazily at spawn and exposes no offline custom-agent validation/list API." >> "$GITHUB_STEP_SUMMARY"
           fi
+          if [ "$HARNESS" = omp ]; then
+            echo "OMP-only package staging, real CLI installation/inventory, package skill references, and native task-agent discovery passed. Parsed built-in tools are read/grep/glob; provider/model fields remain unpinned." >> "$GITHUB_STEP_SUMMARY"
+            echo "**Model execution and additive extension/MCP tool enforcement: unverified.** Local installation links the staged package; no credentials or model calls are used." >> "$GITHUB_STEP_SUMMARY"
+          fi
           if [ "$HARNESS" = antigravity ]; then
             echo "Native plugin directory and archive-roundtrip installs passed agy plugin list --json inventory checks for two skills and one reviewer agent; bundled references were preserved." >> "$GITHUB_STEP_SUMMARY"
             echo "**Native agent tool policy/execution: unverified.** This smoke checks the real CLI inventory, not parsed effective tool policy or model-backed execution." >> "$GITHUB_STEP_SUMMARY"

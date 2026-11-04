@@ -45,21 +45,31 @@ extension is required. Generated reviewers run as skills in the current session.
 
 ### OhMyPi
 
-Install native resources from a checkout; preserve existing customizations first:
+Build and install the OMP-only package from a checkout:
 
 ```bash
 git clone https://github.com/jwmarshall/scopewright.git
 cd scopewright
-mkdir -p ~/.omp/agent/skills ~/.omp/agent/agents
-cp -R skills/scopewright-create skills/root-prompt-reviewer ~/.omp/agent/skills/
-cp .omp/agents/root-prompt-reviewer.md ~/.omp/agent/agents/
+npm run package:omp
+omp install ./dist/omp
 ```
 
-Restart OhMyPi, then use `/skill:scopewright-create`.
-For project-only installation, copy those same resources to your project's
-`.omp/skills/` and `.omp/agents/` instead.
-Do not use `omp install` on this repository: OMP extension discovery scans root
-`agents/`, which contains the Claude plugin adapter, not the OMP task agent.
+Restart OhMyPi, then use `/skill:scopewright-create`. Ask the parent to dispatch
+`root-prompt-reviewer` through `task`, supplying `<target_files>` paths.
+Inspect the installed package with `omp plugin list --json`.
+
+Local `omp install` links the staged directory: keep `dist/omp` on disk.
+The builder refuses an existing destination; for updates, stage into a new directory
+(`npm run package:omp -- /absolute/path/to/new-package`) and install that path.
+Preserve customized reviewers before switching installations; existing user/project
+agents with the same name take precedence over package agents.
+
+For project-only installation, copy `skills/scopewright-create` and
+`skills/root-prompt-reviewer` to `.omp/skills/`, and the native
+`.omp/agents/root-prompt-reviewer.md` to `.omp/agents/`.
+Do not run `omp install` on the repository root: its `agents/` contains the Claude
+plugin adapter. The staged package contains only OMP-native agents and shared skills,
+with no runtime extension code or dependencies.
 
 
 ### Antigravity CLI — recommended Google harness

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, readFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
@@ -182,11 +182,13 @@ switch (harness) {
     version("omp");
     const agentDir = join(home, ".omp", "agent");
     process.env.PI_CODING_AGENT_DIR = agentDir;
-    for (const name of Object.keys(expected)) copy(`skills/${name}`, join(agentDir, "skills", name));
-    copy(".omp/agents/root-prompt-reviewer.md", join(agentDir, "agents", "root-prompt-reviewer.md"));
+    const staged = join(work, "omp-package");
+    run("node", [join(source, "scripts", "package-omp.mjs"), staged]);
+    run("omp", ["install", staged]);
+    console.log(run("omp", ["plugin", "list", "--json"]));
     const { loadCapability } = await import("@oh-my-pi/pi-coding-agent/discovery/index");
     const { discoverAgents } = await import("@oh-my-pi/pi-coding-agent/task/discovery");
-    const loaded = await loadCapability("skills", { cwd: work, providers: ["native"] });
+    const loaded = await loadCapability("skills", { cwd: work, providers: ["omp-plugins"] });
     assert.deepEqual(loaded.warnings, [], "OMP rejected installed skills");
     resources(loaded.items);
     const { agents } = await discoverAgents(work);
@@ -194,6 +196,12 @@ switch (harness) {
     assert.ok(reviewer, "OMP did not discover its native reviewer");
     assert.equal(reviewer.source, "user");
     assert.deepEqual(reviewer.tools.toSorted(), ["glob", "grep", "read"]);
+    assert.ok(realpathSync(reviewer.filePath).startsWith(`${staged}/agents/`), "OMP bypassed the staged native adapter");
+    for (const field of ["model", "thinkingLevel"]) {
+      assert.equal(reviewer[field], undefined, `OMP reviewer unexpectedly configures ${field}`);
+    }
+    console.log(`Loaded native reviewer through ${reviewer.filePath}; built-in tools: ${reviewer.tools.join(", ")}`);
+    report.limits.push("Local omp install links the staged directory; keep it on disk. Discovery and parsed built-in tools are verified, not model execution or additive extension/MCP tool enforcement.");
     break;
   }
   case "antigravity": {

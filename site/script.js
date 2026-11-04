@@ -16,9 +16,9 @@ agent.addEventListener('change', () => {
     command.textContent = 'pi install git:github.com/jwmarshall/scopewright';
     foot.textContent = 'Pi runs the generated reviewer as an on-demand skill in the current session.';
   } else if (agent.value === 'omp') {
-    note.textContent = 'From a Scopewright checkout, install the native OhMyPi resources:';
-    command.textContent = 'mkdir -p ~/.omp/agent/skills ~/.omp/agent/agents && cp -R skills/scopewright-create skills/root-prompt-reviewer ~/.omp/agent/skills/ && cp .omp/agents/root-prompt-reviewer.md ~/.omp/agent/agents/';
-    foot.textContent = 'Preserve existing customizations first. Do not load the Claude plugin agents as an OMP extension.';
+    note.textContent = 'From a Scopewright checkout, build and install the OMP-only package:';
+    command.textContent = 'npm run package:omp && omp install ./dist/omp';
+    foot.textContent = 'Restart OMP, then use /skill:scopewright-create. Keep dist/omp: installation links it. Stage updates at a new path; preserve customized agents, which take precedence. Do not install the repository root.';
   } else if (agent.value === 'antigravity') {
     note.textContent = 'Recommended Google harness: clone, build, and install the native plugin:';
     command.textContent = 'git clone https://github.com/jwmarshall/scopewright.git && cd scopewright && npm run package:antigravity && agy plugin install ./dist/antigravity';

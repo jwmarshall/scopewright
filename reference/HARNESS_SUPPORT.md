@@ -13,7 +13,7 @@ Eight harnesses are retained; Antigravity CLI is the recommended Google harness.
 | Claude Code | Claude plugin marketplace / `--plugin-dir` | Root `agents/<name>.md` for plugins; `.claude/agents/<name>.md` for projects | Read/Glob/Grep allowlist; mutating and delegation tools disallowed |
 | Codex | Agent Skills installer → `.agents/skills/` | `.codex/agents/<name>.toml` | Reduced features plus read-only **parent sandbox**; agent-file sandbox overrides are not supported |
 | Pi | `pi install` → manifest `pi.skills: ["./skills"]` | None without an optional companion extension | Prompt-only in the current session |
-| OhMyPi | Project `.omp/skills/` and `.omp/agents/` | `.omp/agents/<name>.md` | Built-in read/grep/glob allowlist; extension/MCP tools can still be additive |
+| OhMyPi | Build with `npm run package:omp`, then `omp install ./dist/omp`; project-only copies under `.omp/` | Native `.omp/agents/<name>.md`, staged into package `agents/` | Built-in read/grep/glob allowlist; extension/MCP tools can still be additive |
 | Antigravity CLI (recommended Google) | Build with `npm run package:antigravity`, then `agy plugin install ./dist/antigravity` | `.agents/agents/<name>.md`, staged into native plugin `agents/` | Declared `view_file`/`grep_search` allowlist and `commandExecutionPolicy: "off"`; runtime enforcement not established by inventory |
 | Gemini CLI (legacy / enterprise / paid API-key) | Build with `npm run package:gemini`, then install `dist/gemini` or unpacked legacy release | `.gemini/agents/<name>.md`, staged into extension `agents/` | Explicit read_file/grep_search allowlist |
 | OpenCode | Agent Skills installer → `.agents/skills/` | `.opencode/agents/<name>.md` | Default deny; read/glob/grep/list allowed |
@@ -24,9 +24,13 @@ For strict isolation, use native agents and the harness's sandbox/permission set
 review inherited MCP and extension permissions. Prompt injection defenses complement
 these controls but are not a security boundary.
 
-Pi and OhMyPi are distinct harnesses. In particular, do not load this repository as an
-OMP extension package: OMP would scan the root `agents/` directory, which contains
-Claude plugin definitions. Install its native `.omp/` resources instead.
+Pi and OhMyPi are distinct harnesses. Do not install this repository root as an
+OMP extension package: its `agents/` contains Claude plugin definitions.
+`npm run package:omp` stages an OMP-only `package.json`, canonical skills with their
+references, native `.omp/agents/`, and `LICENSE`. `omp install ./dist/omp` links that
+directory; keep it on disk and restart OMP. Existing user/project agents take
+precedence. The builder refuses existing destinations; stage updates at a new path.
+Project-only copies into `.omp/skills/` and `.omp/agents/` remain supported.
 
 ## Creation and invocation
 
@@ -125,10 +129,14 @@ node .github/scripts/test-harness-install.mjs all
 # One harness, or separate image build from offline execution:
 node .github/scripts/test-harness-install.mjs antigravity --build-only
 node .github/scripts/test-harness-install.mjs antigravity --run-only
+# Native OMP harness on ARM hosts (avoids Bun under amd64 emulation):
+OMP_PLATFORM=linux/arm64 node .github/scripts/test-harness-install.mjs omp
 ```
 
-Set `CONTAINER_ENGINE=podman` to use Podman explicitly. Images target Linux amd64.
-The build context contains only the harness Dockerfile and smoke script.
+Set `CONTAINER_ENGINE=podman` to use Podman explicitly. Images default to Linux amd64.
+`OMP_PLATFORM=linux/arm64` selects a separately tagged native OMP image and a pinned
+arm64 Node base; other harnesses retain amd64. Cursor and Antigravity archives in
+this harness are amd64-only. The build context contains only the Dockerfile and smoke script.
 Runtime containers use fresh temporary homes, a read-only repository mount, dropped
 capabilities, and disabled networking; no host credentials enter the image or runtime.
 
@@ -137,7 +145,7 @@ capabilities, and disabled networking; no host credentials enter the image or ru
 | Claude Code | 2.1.307 | Plugin validation, marketplace install, plugin skill/native-agent inventory |
 | Codex | 0.163.0 | Real skills installer and app-server `skills/list` |
 | Pi | 1.4.0 (`@earendil-works/pi-coding-agent`) | `pi install` and official package-aware `DefaultResourceLoader` |
-| OhMyPi | 18.12.6 (Bun 1.4.3) | Native deployment and official skill/task-agent loaders |
+| OhMyPi | 18.12.6 (Bun 1.4.3) | OMP-only package staging, real `omp install`/plugin inventory, official package skill/task-agent loaders and parsed built-in tool allowlist |
 | Gemini CLI (legacy / enterprise / paid API-key) | 0.65.0 | Staged source and release-archive installs, `skills list`, official agent loader |
 | Antigravity CLI | 1.4.5 | Staged source and release-archive installs, `agy plugin list --json` skills/agents inventory |
 | OpenCode | 1.19.3 | Real skills installer, CLI skill/agent discovery and effective permissions |

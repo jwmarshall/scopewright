@@ -1,6 +1,7 @@
-# Pin the amd64 image as well as the CLI releases. Cursor's archive is amd64-only here.
+# Pin the base image and CLI releases; OMP can select the matching arm64 base locally.
 ARG HARNESS
-FROM node:22.22.0-bookworm-slim@sha256:7cc56ef285a8568121537d17b05e72128f01b89c54607b51acf084a50ef483f3 AS base
+ARG NODE_IMAGE=node:22.22.0-bookworm-slim@sha256:7cc56ef285a8568121537d17b05e72128f01b89c54607b51acf084a50ef483f3
+FROM ${NODE_IMAGE} AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl git ripgrep python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
@@ -33,7 +34,8 @@ RUN npm install --no-audit --no-fund @earendil-works/pi-coding-agent@1.4.0
 
 FROM base AS omp
 ENV HARNESS=omp HARNESS_VERSION=18.12.6
-RUN npm install --no-audit --no-fund bun@1.4.3 @oh-my-pi/pi-coding-agent@18.12.6
+RUN npm install --no-audit --no-fund bun@1.4.3 @oh-my-pi/pi-coding-agent@18.12.6 \
+    && npm cache clean --force
 ENTRYPOINT ["bun", "/opt/harness/smoke.mjs"]
 
 FROM base AS antigravity
