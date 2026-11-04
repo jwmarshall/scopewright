@@ -1,0 +1,97 @@
+name: Validate and release harness packages
+
+on:
+  pull_request:
+    paths:
+      - package.json
+      - package-lock.json
+      - LICENSE
+      - skills/**
+      - agents/**
+      - scripts/**
+      - tests/**
+      - .agents/agents/**
+      - .antigravity/**
+      - .claude-plugin/**
+      - .codex/**
+      - .cursor-plugin/**
+      - .cursor/**
+      - .gemini/**
+      - .omp/**
+      - .opencode/**
+      - .github/scripts/**
+      - .github/workflows/release-harness-packages.yml
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check generated native agents and package behavior
+        run: npm run check
+      - name: Check native manifest consistency and build all eight release archives
+        env:
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+        run: node .github/scripts/package-release.mjs
+      - name: Validate archive-unpacked Gemini extension with the official CLI
+        run: |
+          mkdir dist/release/gemini-unpacked
+          tar -xzf dist/release/scopewright-gemini.tar.gz -C dist/release/gemini-unpacked
+          npx --yes @google/gemini-cli@0.65.0 extensions validate dist/release/gemini-unpacked
+
+  install:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: validate
+    name: ${{ matrix.harness }} release install
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        harness: [claude, codex, pi, omp, antigravity, gemini, opencode, cursor]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Exercise staged release installation without credentials or runtime network
+        run: node .github/scripts/test-harness-install.mjs "${{ matrix.harness }}"
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [validate, install]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate tag against package version and build named harness archives
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node .github/scripts/package-release.mjs
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/release/scopewright-claude.tar.gz
+            dist/release/scopewright-codex.tar.gz
+            dist/release/scopewright-pi.tar.gz
+            dist/release/scopewright-omp.tar.gz
+            dist/release/scopewright-antigravity.tar.gz
+            dist/release/scopewright-gemini.tar.gz
+            dist/release/scopewright-opencode.tar.gz
+            dist/release/scopewright-cursor.tar.gz

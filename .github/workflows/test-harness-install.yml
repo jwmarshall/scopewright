@@ -21,7 +21,7 @@ on:
       - .omp/**
       - .opencode/**
       - scripts/**
-      - tests/harnesses/**
+      - tests/**
       - .github/scripts/**
       - .github/workflows/**
   push:
@@ -44,7 +44,7 @@ on:
       - .omp/**
       - .opencode/**
       - scripts/**
-      - tests/harnesses/**
+      - tests/**
       - .github/scripts/**
       - .github/workflows/**
 
@@ -77,11 +77,17 @@ jobs:
           HARNESS: ${{ matrix.harness }}
         run: |
           echo "## $HARNESS" >> "$GITHUB_STEP_SUMMARY"
-          echo "Pinned real CLI installation and version checks passed inside Docker." >> "$GITHUB_STEP_SUMMARY"
+          echo "Pinned real CLI version checks and staged package installation passed inside Docker." >> "$GITHUB_STEP_SUMMARY"
           if [ "$HARNESS" = cursor ]; then
-            echo "**Plugin/skill discovery: SKIPPED**, not passed. Cursor requires an authenticated account or the interactive app; its installed CLI exposes no credential-free inventory/validation command or official loader SDK." >> "$GITHUB_STEP_SUMMARY"
+            echo "Archive-unpacked self-contained project installation and preserved skill/agent resources passed. **Plugin/skill/native-agent discovery: SKIPPED**, not passed. Cursor requires an authenticated account or interactive app; its installed CLI exposes no credential-free inventory/validation command or official loader SDK. Marketplace approval, authentication, and plugin installation are not claimed." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "Skill discovery and bundled-resource assertions passed using the real CLI or matching official installed SDK loader." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "$HARNESS" = codex ] || [ "$HARNESS" = opencode ]; then
+            echo "Archive-unpacked self-contained project installation into .agents/skills and the harness-native project agent directory passed, followed by official discovery." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "$HARNESS" = claude ] || [ "$HARNESS" = pi ]; then
+            echo "Installed the staged minimal harness package, not the repository checkout." >> "$GITHUB_STEP_SUMMARY"
           fi
           if [ "$HARNESS" = codex ]; then
             echo "**Native subagent validation: unverified.** Codex parses custom agent TOML lazily at spawn and exposes no offline custom-agent validation/list API." >> "$GITHUB_STEP_SUMMARY"

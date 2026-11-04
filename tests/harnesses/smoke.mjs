@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
@@ -33,9 +33,32 @@ function version(command) {
   console.log(actual);
 }
 
-function copy(from, to) {
-  mkdirSync(dirname(to), { recursive: true });
-  cpSync(join(source, from), to, { recursive: true });
+function stage() {
+  const staged = `/tmp/${harness}-staged`;
+  run("node", [join(source, "scripts", "package.mjs"), harness, staged]);
+  return staged;
+}
+
+function archive(staged) {
+  const unpacked = `/tmp/${harness}-unpacked`;
+  const asset = `/tmp/scopewright-${harness}.tar.gz`;
+  run("tar", ["-czf", asset, "-C", staged, "."]);
+  mkdirSync(unpacked);
+  run("tar", ["-xzf", asset, "-C", unpacked]);
+  return unpacked;
+}
+
+function installProjectBundle(adapter) {
+  const unpacked = archive(stage());
+  const manifest = JSON.parse(readFileSync(join(unpacked, "package.json"), "utf8"));
+  assert.equal(manifest.scopewright.harness, harness);
+  run("node", [join(unpacked, "install.mjs"), work]);
+  installedResources(join(work, ".agents"));
+  assert.deepEqual(readFileSync(join(work, adapter)), readFileSync(join(source, adapter)),
+    "Project installer changed the generated native adapter");
+  assert.equal(existsSync(join(home, ".agents", "skills", "scopewright-create")), false,
+    "Project installer unexpectedly installed global skills");
+  return unpacked;
 }
 
 function resources(skills, location = "path") {
@@ -103,6 +126,10 @@ async function codexSkills() {
     assert.ok(entry, "Codex did not return the requested workspace");
     assert.deepEqual(entry.errors, [], "Codex rejected installed skills");
     resources(entry.skills);
+    for (const skill of entry.skills.filter(item => item.name in expected)) {
+      assert.equal(realpathSync(skill.path), join(work, ".agents", "skills", skill.name, "SKILL.md"),
+        "Codex bypassed the project-installed skill");
+    }
   } finally {
     clearTimeout(deadline);
     lines.close();
@@ -139,8 +166,9 @@ async function geminiDiscovery(root) {
 switch (harness) {
   case "claude": {
     version("claude");
-    assert.equal(JSON.parse(run("claude", ["plugin", "validate", source, "--json"])).success, true);
-    run("claude", ["plugin", "marketplace", "add", source, "--json"]);
+    const staged = stage();
+    assert.equal(JSON.parse(run("claude", ["plugin", "validate", staged, "--json"])).success, true);
+    run("claude", ["plugin", "marketplace", "add", staged, "--json"]);
     run("claude", ["plugin", "install", "scopewright@scopewright", "--json"]);
     const plugins = JSON.parse(run("claude", ["plugin", "list", "--json"]));
     const plugin = plugins.find(item => item.id === "scopewright@scopewright");
@@ -155,17 +183,20 @@ switch (harness) {
   case "codex": {
     version("codex");
     process.env.CODEX_HOME = join(home, ".codex");
-    run("skills", ["add", source, "--global", "--agent", "codex", "--yes", "--copy"]);
-    copy(".codex/agents/root-prompt-reviewer.toml", join(home, ".codex", "agents", "root-prompt-reviewer.toml"));
+    installProjectBundle(".codex/agents/root-prompt-reviewer.toml");
     await codexSkills();
     report.limits.push("Custom agent TOML is applied lazily at subagent spawn; the installed CLI has no offline custom-agent validation/list API. Native agent execution is not verified.");
     break;
   }
   case "pi": {
     version("pi");
-    run("pi", ["install", source]);
+    const staged = stage();
+    const manifest = JSON.parse(readFileSync(join(staged, "package.json"), "utf8"));
+    assert.deepEqual(manifest.pi, { skills: ["./skills"] });
+    assert.equal(existsSync(join(staged, "agents")), false, "Pi package must not ship foreign native agents");
+    run("pi", ["install", staged]);
     const listing = run("pi", ["list"]);
-    assert.ok(listing.includes(source), listing);
+    assert.ok(listing.includes(staged), listing);
     const { DefaultResourceLoader } = await import("@earendil-works/pi-coding-agent");
     const loader = new DefaultResourceLoader({ cwd: work, agentDir: join(home, ".pi", "agent") });
     await loader.reload();
@@ -182,8 +213,7 @@ switch (harness) {
     version("omp");
     const agentDir = join(home, ".omp", "agent");
     process.env.PI_CODING_AGENT_DIR = agentDir;
-    const staged = join(work, "omp-package");
-    run("node", [join(source, "scripts", "package-omp.mjs"), staged]);
+    const staged = stage();
     run("omp", ["install", staged]);
     console.log(run("omp", ["plugin", "list", "--json"]));
     const { loadCapability } = await import("@oh-my-pi/pi-coding-agent/discovery/index");
@@ -206,15 +236,11 @@ switch (harness) {
   }
   case "antigravity": {
     version("agy");
-    const staged = "/tmp/antigravity-staged";
-    const unpacked = "/tmp/antigravity-unpacked";
-    run("node", [join(source, "scripts", "package-antigravity.mjs"), staged]);
+    const staged = stage();
     run("agy", ["plugin", "install", staged]);
     antigravityDiscovery();
     run("agy", ["plugin", "uninstall", "scopewright"]);
-    run("tar", ["-czf", "/tmp/scopewright-antigravity.tar.gz", "-C", staged, "."]);
-    mkdirSync(unpacked);
-    run("tar", ["-xzf", "/tmp/scopewright-antigravity.tar.gz", "-C", unpacked]);
+    const unpacked = archive(staged);
     run("agy", ["plugin", "install", unpacked]);
     antigravityDiscovery();
     report.limits.push("Native agent inventory is verified by the real CLI; parsed effective tool policy and model-backed agent execution are not verified.");
@@ -222,17 +248,13 @@ switch (harness) {
   }
   case "gemini": {
     version("gemini");
-    const staged = "/tmp/gemini-staged";
-    const unpacked = "/tmp/gemini-unpacked";
-    run("node", [join(source, "scripts", "package-gemini.mjs"), staged]);
+    const staged = stage();
     run("gemini", ["extensions", "validate", staged]);
     run("gemini", ["extensions", "install", staged, "--consent"]);
     const installed = join(home, ".gemini", "extensions", "scopewright");
     await geminiDiscovery(installed);
     run("gemini", ["extensions", "uninstall", "scopewright"]);
-    run("tar", ["-czf", "/tmp/scopewright-gemini.tar.gz", "-C", staged, "."]);
-    mkdirSync(unpacked);
-    run("tar", ["-xzf", "/tmp/scopewright-gemini.tar.gz", "-C", unpacked]);
+    const unpacked = archive(staged);
     run("gemini", ["extensions", "validate", unpacked]);
     run("gemini", ["extensions", "install", unpacked, "--consent"]);
     await geminiDiscovery(installed);
@@ -241,10 +263,13 @@ switch (harness) {
   }
   case "opencode": {
     version("opencode");
-    run("skills", ["add", source, "--global", "--agent", "opencode", "--yes", "--copy"]);
-    copy(".opencode/agents/root-prompt-reviewer.md", join(home, ".config", "opencode", "agents", "root-prompt-reviewer.md"));
+    installProjectBundle(".opencode/agents/root-prompt-reviewer.md");
     const skills = JSON.parse(run("opencode", ["debug", "skill"]));
     resources(skills, "location");
+    for (const skill of skills.filter(item => item.name in expected)) {
+      assert.equal(realpathSync(skill.location), join(work, ".agents", "skills", skill.name, "SKILL.md"),
+        "OpenCode bypassed the project-installed skill");
+    }
     const listing = run("opencode", ["agent", "list"]);
     assert.ok(listing.includes("root-prompt-reviewer (subagent)"), listing);
     const agent = JSON.parse(run("opencode", ["debug", "agent", "root-prompt-reviewer"]));
@@ -261,12 +286,16 @@ switch (harness) {
   }
   case "cursor": {
     version("cursor-agent");
+    const unpacked = installProjectBundle(".cursor/agents/root-prompt-reviewer.md");
+    const plugin = JSON.parse(readFileSync(join(unpacked, ".cursor-plugin", "plugin.json"), "utf8"));
+    assert.equal(existsSync(join(unpacked, ".claude-plugin")), false, "Cursor bundle includes Claude metadata");
+    assert.ok(readFileSync(join(unpacked, plugin.logo)).length > 0, "Cursor plugin logo is missing");
     const help = run("cursor-agent", ["--help"]);
     assert.ok(help.includes("--plugin-dir"), "Pinned Cursor CLI no longer exposes local plugin loading");
     const commands = run("cursor-agent", ["plugin", "--help"]);
     assert.ok(commands.includes("marketplace"), "Cursor plugin CLI is unavailable");
     report.discovery = "skipped";
-    report.limits.push("Cursor CLI installation/version/help are exercised. Plugin discovery requires an authenticated Cursor account or interactive app; this release exposes no credential-free plugin inventory/validation command or official loader SDK. No plugin/skill discovery pass is claimed.");
+    report.limits.push("The unpacked bundle's project installer and preserved skill/agent resources are verified. Cursor CLI installation/version/help are exercised, but plugin/skill/native-agent discovery is SKIPPED: it requires an authenticated Cursor account or interactive app, and this release exposes no credential-free inventory/validation command or official loader SDK. Marketplace approval, authentication, and plugin installation are not claimed.");
     console.log(`::notice title=Cursor discovery skipped::${report.limits[0]}`);
     break;
   }

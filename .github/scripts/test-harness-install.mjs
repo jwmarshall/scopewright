@@ -13,10 +13,18 @@ if ((!harnesses.includes(selected) && selected !== "all") ||
 }
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const engine = process.env.CONTAINER_ENGINE || "docker";
-// Bun can fail under amd64 emulation on ARM hosts. CI retains the amd64 default.
-const ompPlatform = process.env.OMP_PLATFORM || "linux/amd64";
-if (!["linux/amd64", "linux/arm64"].includes(ompPlatform)) {
-  throw new Error("OMP_PLATFORM must be linux/amd64 or linux/arm64");
+// Portable npm CLIs can run natively on ARM; downloaded vendor archives are amd64-only.
+// OMP_PLATFORM remains a more specific override because Bun can fail under amd64 emulation.
+const defaultPlatform = process.env.HARNESS_PLATFORM || "linux/amd64";
+const ompPlatform = process.env.OMP_PLATFORM || defaultPlatform;
+for (const [name, value] of [["HARNESS_PLATFORM", defaultPlatform], ["OMP_PLATFORM", ompPlatform]]) {
+  if (!["linux/amd64", "linux/arm64"].includes(value)) {
+    throw new Error(`${name} must be linux/amd64 or linux/arm64`);
+  }
+}
+const selectedHarnesses = selected === "all" ? harnesses : [selected];
+if (defaultPlatform === "linux/arm64" && selectedHarnesses.some(name => ["antigravity", "cursor"].includes(name))) {
+  throw new Error("Antigravity and Cursor use pinned amd64-only archives; select linux/amd64 for these harnesses");
 }
 function run(args) {
   console.log(`$ ${engine} ${args.join(" ")}`);
@@ -25,8 +33,8 @@ function run(args) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-for (const harness of selected === "all" ? harnesses : [selected]) {
-  const platform = harness === "omp" ? ompPlatform : "linux/amd64";
+for (const harness of selectedHarnesses) {
+  const platform = harness === "omp" ? ompPlatform : defaultPlatform;
   const image = `scopewright-install-smoke:${harness}${platform === "linux/arm64" ? "-arm64" : ""}`;
   const baseArgs = platform === "linux/arm64" ? ["--build-arg",
     "NODE_IMAGE=node:22.22.0-bookworm-slim@sha256:5e22e6fb4448236070fdb260662e49fd58779876855baf95388534475c3dcd11"] : [];
@@ -39,6 +47,10 @@ for (const harness of selected === "all" ? harnesses : [selected]) {
     run(["run", "--rm", "--platform", platform, "--network", "none", "--read-only",
       "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
       "--tmpfs", "/tmp:rw,exec,mode=1777", "--tmpfs", "/home/node:rw,exec,mode=1777",
-      "--mount", `type=bind,source=${root},target=/package,readonly`, image]);
+      "--mount", `type=bind,source=${root},target=/package,readonly`,
+      // Reuse pinned dependency images while exercising the checkout's current smoke implementation.
+      // Keep this path for official SDK imports to resolve against /opt/harness/node_modules.
+      "--mount", `type=bind,source=${join(root, "tests", "harnesses", "smoke.mjs")},target=/opt/harness/smoke.mjs,readonly`,
+      image]);
   }
 }

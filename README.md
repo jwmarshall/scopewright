@@ -19,6 +19,19 @@ defenses, and clear verdict authority.
 Install separately in each harness. Skills are instructions, not a security sandbox;
 native subagents add the controls described in the [support matrix](./reference/HARNESS_SUPPORT.md).
 
+From a checkout, build only the resources for your harness:
+
+```bash
+git clone https://github.com/jwmarshall/scopewright.git
+cd scopewright
+```
+
+The commands below need Node.js but no `npm install`. Version-tag releases publish
+`scopewright-<harness>.tar.gz` for all eight harnesses. Unpack the matching archive
+and use its directory in place of `dist/<harness>`; the checkout is not needed.
+Builders refuse existing output directories. For updates, choose a fresh destination:
+`npm run package:<harness> -- /absolute/path/to/new-package`.
+
 ### Claude Code
 
 Register this repository as a marketplace, then install its plugin:
@@ -29,27 +42,38 @@ claude plugin install scopewright@scopewright
 ```
 
 In Claude Code, run `/scopewright:scopewright-create [what the reviewer should evaluate]`.
-For local development, use `claude --plugin-dir /absolute/path/to/scopewright`.
+For a minimal local plugin or an unpacked release:
+
+```bash
+npm run package:claude
+claude --plugin-dir /absolute/path/to/scopewright/dist/claude
+```
+
+`--plugin-dir` loads the plugin for that session; keep the package directory.
+For persistent installation, register the staged or unpacked directory with
+`claude plugin marketplace add /absolute/path/to/package`, then run the same
+`claude plugin install scopewright@scopewright` command above.
 
 ### Pi
 
 ```bash
-pi install git:github.com/jwmarshall/scopewright
-# Local checkout:
-pi install /absolute/path/to/scopewright
+npm run package:pi
+pi install ./dist/pi
 ```
 
 Run `/skill:scopewright-create [what the reviewer should evaluate]`.
-Pi loads the same `skills/` resources through `package.json`; no companion subagent
-extension is required. Generated reviewers run as skills in the current session.
+The Pi-only package exposes the canonical skills through `pi.skills`; it contains
+no native agents or companion extension. Generated reviewers run as skills in the
+current session. Keep the local package directory and restart Pi after installation.
+The repository's direct Git/package installation remains available, but the staged
+package avoids distributing unrelated adapters.
 
 ### OhMyPi
 
 Build and install the OMP-only package from a checkout:
 
 ```bash
-git clone https://github.com/jwmarshall/scopewright.git
-cd scopewright
+# From the checkout:
 npm run package:omp
 omp install ./dist/omp
 ```
@@ -75,8 +99,7 @@ with no runtime extension code or dependencies.
 ### Antigravity CLI — recommended Google harness
 
 ```bash
-git clone https://github.com/jwmarshall/scopewright.git
-cd scopewright
+# From the checkout:
 npm run package:antigravity
 agy plugin install ./dist/antigravity
 ```
@@ -105,8 +128,7 @@ Enterprise licenses and paid API-key access remain supported. This repository
 retains the separate Gemini extension; it is not an Antigravity plugin.
 
 ```bash
-git clone https://github.com/jwmarshall/scopewright.git
-cd scopewright
+# From the checkout:
 npm run package:gemini
 gemini extensions install ./dist/gemini
 ```
@@ -114,35 +136,60 @@ gemini extensions install ./dist/gemini
 Use `/skills list` to inspect the skills, then ask Gemini to use `scopewright-create`.
 The repository root is a Claude plugin, not a Gemini extension. The build stages
 only the canonical skills, references, and Gemini reviewer. No dependencies are needed.
-The release workflow publishes the same Gemini-only `scopewright.tar.gz` for matching
-`v<version>` tags; unpack it and install its directory with `gemini extensions install`.
+Version-tag releases publish `scopewright-gemini.tar.gz`; unpack it and install its
+directory with `gemini extensions install`.
 
-### Codex, OpenCode, and Cursor
-
-Use the existing [skills installer](https://github.com/vercel-labs/skills) from your
-target project; it copies each complete skill, including its references:
+### Codex
 
 ```bash
-npx skills@1.7.4 add jwmarshall/scopewright --skill scopewright-create root-prompt-reviewer -a codex -y
-# Replace codex with opencode or cursor for those harnesses.
+npm run package:codex
+node ./dist/codex/install.mjs /absolute/path/to/your-project
 ```
 
-This installs **skills only**, not native agents. Ask the harness to use
-`scopewright-create`; Codex also supports `$scopewright-create`.
-Cursor's plugin manifest remains available for marketplace submission; this
-repository does not assume marketplace approval.
+Installs both complete skills into `.agents/skills/` and the native reviewer into
+`.codex/agents/`. Restart Codex, then use `$scopewright-create` or ask it to use
+`scopewright-create`. Ask the parent to delegate to `root-prompt-reviewer` for a
+review. Enforced filesystem isolation requires the **parent's read-only sandbox**;
+the custom agent cannot override it.
 
-To use the bundled native reviewer outside a plugin/extension, copy its adapter
-from a checkout into the matching directory in your target project:
+### OpenCode
 
 ```bash
-# Example: Codex
-mkdir -p .codex/agents
-cp /absolute/path/to/scopewright/.codex/agents/root-prompt-reviewer.toml .codex/agents/
+npm run package:opencode
+node ./dist/opencode/install.mjs /absolute/path/to/your-project
 ```
 
-The bundled adapters embed the rubric, so they do not depend on files outside the
-copied adapter. Do not overwrite an existing customized reviewer.
+Installs complete skills into `.agents/skills/` and the native reviewer into
+`.opencode/agents/`. Restart OpenCode, ask it to use `scopewright-create`, or invoke
+`@root-prompt-reviewer` with `<target_files>` paths. The native adapter keeps its
+deny-by-default tool permissions.
+
+### Cursor
+
+```bash
+npm run package:cursor
+node ./dist/cursor/install.mjs /absolute/path/to/your-project
+```
+
+Installs complete skills into `.agents/skills/` and the native reviewer into
+`.cursor/agents/`. Restart Cursor and ask it to use `scopewright-create` or delegate
+to `root-prompt-reviewer`. The package also includes its Cursor plugin manifest
+and logo for native plugin loading; marketplace approval is not assumed.
+Cursor's authenticated plugin inventory cannot be verified by the offline harness.
+
+### Project installation safety
+
+The bundled `install.mjs` in Codex, OpenCode, and Cursor packages requires an
+existing project directory. It preflights both skill directories and the native
+adapter, refusing existing destinations and symlinked destination ancestors before
+copying anything. Unrelated project files are preserved; no credentials, global
+settings, or runtime dependencies are installed. Copied resources are self-contained,
+so the package directory can be removed after a successful project installation.
+
+For updates, preserve customized skills and reviewers, move their existing
+destinations aside, then run the new package's installer. There is no force/overwrite
+mode. A generic Agent Skills installer remains an alternative for **skills only**;
+it does not install the native adapters.
 
 ### Reviewer creation
 
@@ -300,9 +347,10 @@ theatrical role-play.
 
 `skills/` is the only authored skill tree. Each skill bundles its own references,
 so installing a single skill never loses its framework or rubric.
-`package.json` and Claude/Cursor plugin manifests expose that tree directly.
-`npm run package:antigravity` stages a native Antigravity plugin;
-`npm run package:gemini` stages the separate legacy Gemini extension.
+Harness-specific packages expose only the matching native adapter and manifest.
+`npm run package:<harness>` stages one package; `npm run package:all` stages all eight.
+Native plugin/package managers handle Claude Code, Pi, OMP, Antigravity, and Gemini.
+Codex, OpenCode, and Cursor packages include a conservative project-copy installer.
 
 The canonical reviewer lives in `skills/root-prompt-reviewer/SKILL.md`.
 `npm run sync:agents` generates the harness adapters; `npm run check` rejects drift
@@ -327,8 +375,9 @@ Gemini definitions into the staged extension's root `agents/`.
 - [Agent Skills specification](https://agentskills.io/specification):
   portable `SKILL.md` frontmatter and skill-local `references/`.
 
-These conventions are adopted without adding a custom universal installer or runtime
-dependency. See the [support matrix](./reference/HARNESS_SUPPORT.md) for vendor sources.
+The project-copy installer is limited to the three packages that need it; it does
+not invent a shared native plugin format or change global harness settings.
+See the [support matrix](./reference/HARNESS_SUPPORT.md) for vendor sources.
 
 ### Migration
 
@@ -342,6 +391,10 @@ The framework and rubric moved into their owning skill's `references/` directory
 Update external links to those paths. No compatibility aliases remain.
 Direct Gemini installation from this Git repository is replaced by clone → build →
 install, or installation of the unpacked Gemini-only release archive.
+The ambiguous `scopewright.tar.gz` release name is replaced by
+`scopewright-gemini.tar.gz`; every release asset now names its target harness.
+For direct script usage, use `node scripts/package.mjs <harness> [output]`.
+The `npm run package:<harness>` commands remain the supported per-harness entry points.
 
 ### Verification and releases
 
@@ -350,10 +403,11 @@ credential-free installation/discovery checks. Run the same matrix locally using
 the commands in [Harness support](./reference/HARNESS_SUPPORT.md).
 No model credentials are needed or mounted.
 
-Google releases validate separate native Antigravity and legacy Gemini packages,
-including installs from unpacked release archives. Tags must match the package and
-Gemini extension version. Claude directory notifications remain version-triggered,
-and the website remains deployed through GitHub Pages.
+Version-tag releases build eight minimal, named harness packages. Installation CI
+uses real CLIs/loaders and exercises unpacked project bundles and native packages;
+Cursor's authenticated discovery remains explicitly skipped. Tags must match the
+package and versioned native manifests. Claude directory notifications remain
+version-triggered, and the website remains deployed through GitHub Pages.
 
 Aider has no native custom-subagent/Agent Skills contract here and is not included
 in the supported installation matrix.

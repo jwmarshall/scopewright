@@ -10,14 +10,14 @@ Eight harnesses are retained; Antigravity CLI is the recommended Google harness.
 
 | Harness | Installation surface | Native adapter | Read-only boundary |
 | --- | --- | --- | --- |
-| Claude Code | Claude plugin marketplace / `--plugin-dir` | Root `agents/<name>.md` for plugins; `.claude/agents/<name>.md` for projects | Read/Glob/Grep allowlist; mutating and delegation tools disallowed |
-| Codex | Agent Skills installer → `.agents/skills/` | `.codex/agents/<name>.toml` | Reduced features plus read-only **parent sandbox**; agent-file sandbox overrides are not supported |
-| Pi | `pi install` → manifest `pi.skills: ["./skills"]` | None without an optional companion extension | Prompt-only in the current session |
+| Claude Code | Marketplace, or `npm run package:claude` → native plugin directory | Root `agents/<name>.md` for plugins; `.claude/agents/<name>.md` for projects | Read/Glob/Grep allowlist; mutating and delegation tools disallowed |
+| Codex | `npm run package:codex` → bundled project installer | `.codex/agents/<name>.toml` | Reduced features plus read-only **parent sandbox**; agent-file sandbox overrides are not supported |
+| Pi | `npm run package:pi` → `pi install ./dist/pi` | None without an optional companion extension | Prompt-only in the current session |
 | OhMyPi | Build with `npm run package:omp`, then `omp install ./dist/omp`; project-only copies under `.omp/` | Native `.omp/agents/<name>.md`, staged into package `agents/` | Built-in read/grep/glob allowlist; extension/MCP tools can still be additive |
 | Antigravity CLI (recommended Google) | Build with `npm run package:antigravity`, then `agy plugin install ./dist/antigravity` | `.agents/agents/<name>.md`, staged into native plugin `agents/` | Declared `view_file`/`grep_search` allowlist and `commandExecutionPolicy: "off"`; runtime enforcement not established by inventory |
 | Gemini CLI (legacy / enterprise / paid API-key) | Build with `npm run package:gemini`, then install `dist/gemini` or unpacked legacy release | `.gemini/agents/<name>.md`, staged into extension `agents/` | Explicit read_file/grep_search allowlist |
-| OpenCode | Agent Skills installer → `.agents/skills/` | `.opencode/agents/<name>.md` | Default deny; read/glob/grep/list allowed |
-| Cursor | Agent Skills installer or Cursor plugin | `.cursor/agents/<name>.md` | `readonly: true` and explicit no-mutation instructions |
+| OpenCode | `npm run package:opencode` → bundled project installer | `.opencode/agents/<name>.md` | Default deny; read/glob/grep/list allowed |
+| Cursor | `npm run package:cursor` → bundled project installer or native Cursor plugin | `.cursor/agents/<name>.md` | `readonly: true` and explicit no-mutation instructions |
 
 Skills alone do **not** restrict the parent harness's tools or create isolated sessions.
 For strict isolation, use native agents and the harness's sandbox/permission settings;
@@ -32,6 +32,43 @@ directory; keep it on disk and restart OMP. Existing user/project agents take
 precedence. The builder refuses existing destinations; stage updates at a new path.
 Project-only copies into `.omp/skills/` and `.omp/agents/` remain supported.
 
+## Harness-specific packages
+
+`npm run package:<harness>` stages a minimal package in `dist/<harness>`.
+`npm run package:all` stages all eight. All packages include complete canonical
+skills with their references and `LICENSE`, but only the selected harness's adapter
+and manifest. Pi deliberately contains no native agent. Claude and Cursor packages
+retain their distinct native plugin manifests; the Cursor logo is bundled locally.
+No package installs runtime extension code or dependencies.
+
+The packaging CLI is `node scripts/package.mjs <harness|all> [output-directory]`.
+It checks source prerequisites and rejects existing output directories rather than
+merging stale files. To update, build at a fresh path and install that package.
+
+Version-tag releases publish `scopewright-<harness>.tar.gz` for `claude`, `codex`,
+`pi`, `omp`, `antigravity`, `gemini`, `opencode`, and `cursor`. Unpack the matching
+archive; its contents are the same layout as the staged package. All resource paths
+are package-local, so archives can be relocated independently of the checkout.
+The former ambiguous Gemini asset `scopewright.tar.gz` is no longer published;
+use `scopewright-gemini.tar.gz`.
+
+Codex, OpenCode, and Cursor bundles include a project-only installer:
+
+```bash
+node /absolute/path/to/unpacked-package/install.mjs /absolute/path/to/existing-project
+```
+
+It installs both skills under `.agents/skills/` and the native reviewer under the
+matching `.codex/agents/`, `.opencode/agents/`, or `.cursor/agents/` directory.
+It refuses existing skill/agent destinations, including symlinks, and symlinked
+destination ancestors before copying resources. It preserves unrelated project
+files and changes no global configuration. There is no force/overwrite mode.
+For updates, preserve customizations and move existing owned destinations aside
+before installing. Project installations are copies; the source package is no longer
+needed afterward. Local Pi/OMP installs and Claude `--plugin-dir` usage instead
+depend on the package directory remaining available.
+
+
 ## Creation and invocation
 
 The creator writes the same SCOPED body to a portable skill and the selected native
@@ -39,9 +76,10 @@ adapter, asking before overwriting. It uses a harness-specific skill directory w
 `.agents/skills/` is not supported. Pi produces a skill only. Aider is not represented
 by a misleading native adapter.
 
-For bundled native agents installed by copying, copy the single adapter into its
-native project directory. The embedded rubric makes that adapter self-contained.
-A generic skills installer installs the portable skills, **not** the agent adapters.
+The project installers deploy the complete skills and native adapter together.
+For manual installation, the single generated adapter remains self-contained
+because it embeds its rubric. A generic skills installer installs portable skills,
+**not** native agent adapters.
 
 ## Provider-neutral model selection
 
@@ -129,31 +167,38 @@ node .github/scripts/test-harness-install.mjs all
 # One harness, or separate image build from offline execution:
 node .github/scripts/test-harness-install.mjs antigravity --build-only
 node .github/scripts/test-harness-install.mjs antigravity --run-only
-# Native OMP harness on ARM hosts (avoids Bun under amd64 emulation):
+# Native portable harness on ARM hosts (avoids amd64 emulation):
+HARNESS_PLATFORM=linux/arm64 node .github/scripts/test-harness-install.mjs opencode
+# OMP can also override its platform independently:
 OMP_PLATFORM=linux/arm64 node .github/scripts/test-harness-install.mjs omp
 ```
 
 Set `CONTAINER_ENGINE=podman` to use Podman explicitly. Images default to Linux amd64.
-`OMP_PLATFORM=linux/arm64` selects a separately tagged native OMP image and a pinned
-arm64 Node base; other harnesses retain amd64. Cursor and Antigravity archives in
-this harness are amd64-only. The build context contains only the Dockerfile and smoke script.
+`HARNESS_PLATFORM=linux/arm64` selects native, separately tagged images with a pinned
+arm64 Node base for Claude, Codex, Pi, OMP, Gemini, and OpenCode.
+`OMP_PLATFORM` overrides that choice only for OMP. Antigravity and Cursor reject ARM
+because their pinned archives are amd64-only; run those harnesses separately with
+the default platform rather than selecting `all` with an ARM override.
+The build context contains only the Dockerfile and smoke script. `--run-only` mounts
+the current smoke script into the cached pinned image, so smoke-only changes do not
+require reinstalling harness dependencies.
 Runtime containers use fresh temporary homes, a read-only repository mount, dropped
 capabilities, and disabled networking; no host credentials enter the image or runtime.
 
 | Harness | Pinned CLI | Discovery surface |
 | --- | --- | --- |
-| Claude Code | 2.1.307 | Plugin validation, marketplace install, plugin skill/native-agent inventory |
-| Codex | 0.163.0 | Real skills installer and app-server `skills/list` |
-| Pi | 1.4.0 (`@earendil-works/pi-coding-agent`) | `pi install` and official package-aware `DefaultResourceLoader` |
+| Claude Code | 2.1.307 | Staged plugin validation, local marketplace install, plugin skill/native-agent inventory |
+| Codex | 0.163.0 | Relocated project bundle installation and app-server `skills/list`; native TOML execution remains unverified |
+| Pi | 1.4.0 (`@earendil-works/pi-coding-agent`) | Minimal package `pi install` and official package-aware `DefaultResourceLoader` |
 | OhMyPi | 18.12.6 (Bun 1.4.3) | OMP-only package staging, real `omp install`/plugin inventory, official package skill/task-agent loaders and parsed built-in tool allowlist |
 | Gemini CLI (legacy / enterprise / paid API-key) | 0.65.0 | Staged source and release-archive installs, `skills list`, official agent loader |
 | Antigravity CLI | 1.4.5 | Staged source and release-archive installs, `agy plugin list --json` skills/agents inventory |
-| OpenCode | 1.19.3 | Real skills installer, CLI skill/agent discovery and effective permissions |
-| Cursor | 2026.10.19-6bbf2c4 | Actual binary/version/help; authenticated discovery skipped |
+| OpenCode | 1.19.3 | Relocated project bundle installation, CLI skill/agent discovery and effective permissions |
+| Cursor | 2026.10.19-6bbf2c4 | Relocated project bundle installation and actual binary/version/help; authenticated discovery skipped |
 
-The base Node image is digest-pinned; Cursor and Antigravity archives are checksum-verified.
-CLI versions and the skills installer are pinned, but npm transitive dependencies
-are not lockfile-pinned. See `tests/harnesses/Dockerfile` for the full install commands.
+The base Node images are digest-pinned; Cursor and Antigravity archives are
+checksum-verified. CLI versions are pinned, but npm transitive dependencies are
+not lockfile-pinned. See `tests/harnesses/Dockerfile` for full install commands.
 
 A loader-level check does not prove model behavior or enforce tool restrictions at
 inference time. Codex parses custom-agent TOML lazily at spawn; native agent execution
@@ -166,14 +211,27 @@ read-only enforcement, command-execution policy, or model behavior.
 
 ## CI/CD contracts
 
-- Harness installation CI targets eight harnesses and checks generated adapters.
-- Google release CI packages the native Antigravity plugin and separate legacy
-  Gemini extension, validating installs and inventories without model execution.
-  It preserves `scopewright.tar.gz` for Gemini and adds `scopewright-antigravity.tar.gz`.
-  Tags must equal `v` plus the package version; Gemini's manifest version must match.
+- Harness installation CI targets eight harnesses, checks generated adapters and
+  installer safety behavior, and exercises minimal packages through real CLIs/loaders.
+- Release CI builds all eight harness-specific packages and publishes only named
+  `scopewright-<harness>.tar.gz` archives. Native installation paths and relocated
+  project bundles are verified without credentials or model execution.
+  Tags must equal `v` plus the package version; versioned native manifests must match.
 - Claude directory publication retains the version-change gate and webhook secrets;
   no webhook is sent for an unchanged plugin version.
 - GitHub Pages continues to upload `site/`; website setup commands match the README.
+
+Build the same release archives locally without publishing:
+
+```bash
+node .github/scripts/package-release.mjs /absolute/path/to/fresh-release-directory
+# Also enforce a prospective tag:
+RELEASE_TAG=v0.2.0 node .github/scripts/package-release.mjs /absolute/path/to/another-fresh-directory
+```
+
+The release directory contains staged `packages/` plus the eight named archives.
+Existing output directories are refused; release creation never cleans user files.
+
 
 Production publication requires GitHub permissions, existing secrets, and (for the
 Cursor marketplace) external approval. Local verification does not publish anything.

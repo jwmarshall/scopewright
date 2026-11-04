@@ -1,4 +1,4 @@
-# Pin the base image and CLI releases; OMP can select the matching arm64 base locally.
+# Pin the base image and CLI releases; portable npm CLIs can select the arm64 base locally.
 ARG HARNESS
 ARG NODE_IMAGE=node:22.22.0-bookworm-slim@sha256:7cc56ef285a8568121537d17b05e72128f01b89c54607b51acf084a50ef483f3
 FROM ${NODE_IMAGE} AS base
@@ -22,15 +22,18 @@ ENTRYPOINT ["node", "/opt/harness/smoke.mjs"]
 
 FROM base AS claude
 ENV HARNESS=claude HARNESS_VERSION=2.1.307
-RUN npm install --no-audit --no-fund @anthropic-ai/claude-code@2.1.307
+RUN npm install --no-audit --no-fund @anthropic-ai/claude-code@2.1.307 \
+    && npm cache clean --force
 
 FROM base AS codex
 ENV HARNESS=codex HARNESS_VERSION=0.163.0
-RUN npm install --no-audit --no-fund @openai/codex@0.163.0 skills@1.7.4
+RUN npm install --no-audit --no-fund @openai/codex@0.163.0 \
+    && npm cache clean --force
 
 FROM base AS pi
 ENV HARNESS=pi HARNESS_VERSION=1.4.0
-RUN npm install --no-audit --no-fund @earendil-works/pi-coding-agent@1.4.0
+RUN npm install --no-audit --no-fund @earendil-works/pi-coding-agent@1.4.0 \
+    && npm cache clean --force
 
 FROM base AS omp
 ENV HARNESS=omp HARNESS_VERSION=18.12.6
@@ -51,11 +54,13 @@ RUN curl -fL -o /tmp/antigravity.tar.gz \
 
 FROM base AS gemini
 ENV HARNESS=gemini HARNESS_VERSION=0.65.0
-RUN npm install --no-audit --no-fund @google/gemini-cli@0.65.0 @google/gemini-cli-core@0.65.0
+RUN npm install --no-audit --no-fund @google/gemini-cli@0.65.0 @google/gemini-cli-core@0.65.0 \
+    && npm cache clean --force
 
 FROM base AS opencode
 ENV HARNESS=opencode HARNESS_VERSION=1.19.3
-RUN npm install --no-audit --no-fund opencode-ai@1.19.3 skills@1.7.4
+RUN npm install --no-audit --no-fund opencode-ai@1.19.3 \
+    && npm cache clean --force
 
 FROM base AS cursor
 ENV HARNESS=cursor HARNESS_VERSION=2026.10.19-6bbf2c4
