@@ -142,11 +142,11 @@ jobs:
           assert.equal(files.length, 1);
           const pkg = JSON.parse(execFileSync("tar", ["-xOf", "dist/npm/" + files[0], "package/package.json"], { encoding: "utf8" }));
           const source = JSON.parse(readFileSync("package.json", "utf8"));
-          assert.equal(pkg.name, "scopewright");
+          assert.equal(pkg.name, "@jwmarshall/scopewright");
           assert.equal(pkg.version, source.version);
           assert.equal(process.env.RELEASE_TAG, "v" + pkg.version);
           NODE
-      # npm settings: scopewright -> Trusted Publisher -> GitHub Actions:
+      # npm settings: @jwmarshall/scopewright -> Trusted Publisher -> GitHub Actions:
       # owner jwmarshall, repository scopewright, workflow release-harness-packages.yml,
       # environment blank. No npm token or GitHub environment is used.
       - name: Publish the exact verified tarball through GitHub OIDC

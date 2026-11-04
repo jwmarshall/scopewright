@@ -15,16 +15,17 @@ const output = resolve(process.argv[2] ?? "dist/release");
 const readJSON = path => JSON.parse(readFileSync(path, "utf8"));
 const pkg = readJSON(join(root, "package.json"));
 const harnesses = ["claude", "codex", "pi", "omp", "antigravity", "gemini", "opencode", "cursor"];
+const nativeName = "scopewright";
 if (process.env.RELEASE_TAG) {
   assert.equal(process.env.RELEASE_TAG, `v${pkg.version}`, "Release tag must match package.json version");
 }
 for (const path of [".claude-plugin/plugin.json", ".cursor-plugin/plugin.json", ".gemini/gemini-extension.json"]) {
   const manifest = readJSON(join(root, path));
-  assert.equal(manifest.name, pkg.name, `${path}: native name differs from package.json`);
+  assert.equal(manifest.name, nativeName, `${path}: native plugin name differs`);
   assert.equal(manifest.version, pkg.version, `${path}: native version differs from package.json`);
 }
-assert.equal(readJSON(join(root, ".antigravity/plugin.json")).name, pkg.name,
-  "Antigravity native plugin name differs from package.json (its manifest has no version)");
+assert.equal(readJSON(join(root, ".antigravity/plugin.json")).name, nativeName,
+  "Antigravity native plugin name differs (its manifest has no version)");
 
 function run(command, args) {
   console.log(`$ ${command} ${args.join(" ")}`);
@@ -45,7 +46,8 @@ for (const harness of harnesses) {
     : harness === "gemini" ? "gemini-extension.json"
     : harness === "antigravity" ? "plugin.json" : "package.json";
   const manifest = readJSON(join(staged, manifestPath));
-  assert.equal(manifest.name, pkg.name, `${harness}: staged manifest name differs`);
+  const expectedName = ["claude", "cursor", "gemini", "antigravity"].includes(harness) ? nativeName : pkg.name;
+  assert.equal(manifest.name, expectedName, `${harness}: staged manifest name differs`);
   if (harness !== "antigravity") {
     assert.equal(manifest.version, pkg.version, `${harness}: staged manifest version differs`);
   }

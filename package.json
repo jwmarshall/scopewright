@@ -1,7 +1,8 @@
 {
-  "name": "scopewright",
+  "name": "@jwmarshall/scopewright",
   "version": "0.3.0",
   "description": "SCOPED read-only reviewers for Claude Code, Codex, Pi, OhMyPi, Antigravity CLI, legacy Gemini CLI, OpenCode, and Cursor.",
+  "author": "Jonathon W. Marshall <jonathon.marshall@gmail.com> (https://github.com/jwmarshall)",
   "license": "MIT",
   "keywords": ["pi-package", "agent-skills", "codex", "oh-my-pi", "antigravity", "gemini-cli", "opencode", "cursor", "code-review", "scoped"],
   "bin": {

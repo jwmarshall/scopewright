@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const harnesses = ["claude", "codex", "pi", "omp", "antigravity", "gemini", "opencode", "cursor"];
+const nativeName = "scopewright";
 const projectHarnesses = new Set(["codex", "opencode", "cursor"]);
 
 function stat(path) {
@@ -51,7 +52,7 @@ function plan(harness, pkg) {
   const metadata = { name: pkg.name, version: pkg.version, description: pkg.description, license: pkg.license };
   function manifest(source, destination, versioned = true) {
     const value = readJson(source);
-    assert.equal(value.name, pkg.name, `${harness} manifest and package names must match`);
+    assert.equal(value.name, nativeName, `${harness} manifest must use the native plugin name`);
     if (versioned) assert.equal(value.version, pkg.version, `${harness} manifest and package versions must match`);
     json.push([destination, value]);
     return value;
@@ -60,7 +61,7 @@ function plan(harness, pkg) {
     case "claude": {
       manifest(".claude-plugin/plugin.json", ".claude-plugin/plugin.json");
       const marketplace = manifest(".claude-plugin/marketplace.json", ".claude-plugin/marketplace.json", false);
-      assert.ok(marketplace.plugins?.some(plugin => plugin.name === pkg.name && plugin.source === "./"), "Claude marketplace must reference the local package");
+      assert.ok(marketplace.plugins?.some(plugin => plugin.name === nativeName && plugin.source === "./"), "Claude marketplace must reference the local plugin");
       copies.push(["agents", "agents"]);
       break;
     }

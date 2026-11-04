@@ -8,11 +8,15 @@ from the canonical reviewer with the full rubric embedded.
 
 Eight harnesses are retained; Antigravity CLI is the recommended Google harness.
 
+The npm distribution is [`@jwmarshall/scopewright`](https://www.npmjs.com/package/@jwmarshall/scopewright).
+The `scopewright` executable, native plugin/marketplace names, skill names,
+repository paths, and `scopewright-<harness>.tar.gz` archive names are unchanged.
+
 | Harness | Installation surface | Native adapter | Read-only boundary |
 | --- | --- | --- | --- |
 | Claude Code | Native marketplace first; managed project CLI `--harness claude` alternative | Root `agents/<name>.md` for plugins; `.claude/agents/<name>.md` for projects | Read/Glob/Grep allowlist; mutating and delegation tools disallowed |
 | Codex | Managed project CLI `--harness codex`; offline bundle alternative | `.codex/agents/<name>.toml` | Reduced features plus read-only **parent sandbox**; agent-file sandbox overrides are not supported |
-| Pi | `pi install --local npm:scopewright` from the project; direct Git or managed CLI `--harness pi` alternatives | None without an optional companion extension | Prompt-only in the current session |
+| Pi | `pi install npm:@jwmarshall/scopewright` for user-level installation; add `--local` for a project declaration; direct Git or managed CLI `--harness pi` alternatives | None without an optional companion extension | Prompt-only in the current session |
 | OhMyPi | Managed project CLI `--harness omp`; native OMP-only archive alternative | Native `.omp/agents/<name>.md`, staged into package `agents/` | Built-in read/grep/glob allowlist; extension/MCP tools can still be additive |
 | Antigravity CLI (recommended Google) | Managed project CLI `--harness antigravity`; native plugin archive alternative | `.agents/agents/<name>.md`, staged into native plugin `agents/` | Declared `view_file`/`grep_search` allowlist and `commandExecutionPolicy: "off"`; runtime enforcement not established by inventory |
 | Gemini CLI (legacy / enterprise / paid API-key) | Managed project CLI `--harness gemini`; separate native extension archive alternative | `.gemini/agents/<name>.md`, staged into extension `agents/` | Explicit read_file/grep_search allowlist |
@@ -25,28 +29,34 @@ review inherited MCP and extension permissions. Prompt injection defenses comple
 these controls but are not a security boundary.
 
 Pi and OhMyPi are distinct harnesses. Do not run `omp install` on this repository
-root: its `agents/` contains Claude plugin definitions. The root Scopewright CLI
-selects the OMP adapter correctly with `--harness omp`. Native OMP users can unpack
+root or `omp install npm:@jwmarshall/scopewright`: the root package's `agents/`
+contains Claude plugin definitions. The `@jwmarshall/scopewright` CLI selects the
+OMP adapter correctly with `--harness omp` for project-local installation.
+Native OMP users can unpack
 `scopewright-omp.tar.gz` and run `omp install /absolute/path/to/unpacked-omp-package`.
 That install links its package directory: keep it, restart OMP, and stage native
 updates at a fresh path. Existing user/project agents take precedence.
 
 ## Managed project CLI
 
-The managed CLI requires Scopewright **0.3.0+** and Node.js 22+. Version 0.2.0
-provides skills but has no project CLI. Prefer the native Claude marketplace or
-Pi package where appropriate:
+The managed CLI in `@jwmarshall/scopewright` requires version **0.3.0+** and
+Node.js 22+. The old unscoped package's version 0.2.0 provides skills but has no
+project CLI. Prefer the native Claude marketplace or Pi package where appropriate:
 
 ```bash
-npx scopewright@latest install --harness omp --local --project /absolute/path/to/project
-npx scopewright@latest update --harness omp --local --project /absolute/path/to/project
+npx @jwmarshall/scopewright@latest install --harness omp --local --project /absolute/path/to/project
+npx @jwmarshall/scopewright@latest update --harness omp --local --project /absolute/path/to/project
 ```
 
 All eight `--harness` values in the table are supported. `--project` must be an
-existing directory and defaults to cwd; `--local` is optional but recommended.
-There is no global mode or home-configuration write. `--help` and `--version` are
-supported. Fetching `@latest` does not update files by itself: invoke `update`
-explicitly for the selected previously-managed harness.
+existing directory and defaults to cwd; `--local` makes project scope explicit.
+Omitting `--local` does not install user-wide: the managed CLI only copies project
+files and never registers a native harness package. There is no global mode or
+home-configuration write. Pi's native `pi install npm:@jwmarshall/scopewright`
+installs user-wide; `pi install --local npm:@jwmarshall/scopewright` records a project
+package declaration instead. `--help` and `--version` are supported. Fetching
+`@latest` does not update files by itself: invoke `update` explicitly for the
+selected previously-managed harness.
 
 An existing source checkout can run the equivalent command without a build:
 
@@ -161,17 +171,16 @@ model-backed cross-provider execution tests.
 ## Google harnesses and migration
 
 Use Antigravity CLI for new Google installations. Prefer project-native files via
-the managed CLI; after the 0.3.0 npm release:
+the published `@jwmarshall/scopewright` managed CLI:
 
 ```bash
-npx scopewright@latest install --harness antigravity --local --project /absolute/path/to/project
-npx scopewright@latest update --harness antigravity --local --project /absolute/path/to/project
+npx @jwmarshall/scopewright@latest install --harness antigravity --local --project /absolute/path/to/project
+npx @jwmarshall/scopewright@latest update --harness antigravity --local --project /absolute/path/to/project
 ```
 
-Until 0.3.0 publication, use the source CLI equivalent from the managed-install section,
-changing `--harness` to `antigravity`. No clone/build is needed when using a published
-package. Ask the creator to use `antigravity`. Project-native reviewers go in
-`.agents/agents/<name>.md`; portable project skills use `.agents/skills/`.
+No clone/build is needed when using the published package. Ask the creator to use
+`antigravity`. Project-native reviewers go in `.agents/agents/<name>.md`; portable
+project skills use `.agents/skills/`.
 
 For native plugin registration instead, unpack `scopewright-antigravity.tar.gz`:
 
@@ -276,7 +285,7 @@ read-only enforcement, command-execution policy, or model behavior.
 - Harness installation CI targets eight harnesses, checks generated adapters and
   installer safety behavior, and exercises minimal packages through real CLIs/loaders.
 - Release CI builds all eight named `scopewright-<harness>.tar.gz` archives and the
-  root npm tarball. It verifies the packed CLI/resources and native/project paths
+  `@jwmarshall/scopewright` npm tarball. It verifies the packed CLI/resources and native/project paths
   without credentials or model execution before allowing publication.
   Tags must equal `v` plus the package version; versioned native manifests must match.
 - npm publication is gated on validation and all eight harness-install jobs; the
@@ -290,7 +299,7 @@ Build the same release archives locally without publishing:
 
 ```bash
 node .github/scripts/package-release.mjs /absolute/path/to/fresh-release-directory
-# Also enforce a prospective tag:
+# Also enforce the current package version without publishing:
 RELEASE_TAG=v0.3.0 node .github/scripts/package-release.mjs /absolute/path/to/another-fresh-directory
 ```
 
@@ -305,17 +314,28 @@ Local packaging/verification does not publish anything.
 
 ### npm release maintainer setup
 
-The npm package `scopewright` is maintained by `jwmarshall`. Version **0.3.0**
-introduces the managed project CLI; version 0.2.0 is skills-only. npm versions are
-immutable: always bump the package and versioned manifests for a new release.
+The npm package is **`@jwmarshall/scopewright`**, under Jonathon W. Marshall's
+`jwmarshall` account. The CLI executable and native plugin names remain
+`scopewright`; npm-based harness archives retain the scoped package identity.
+Version **0.3.0** introduces the managed project CLI; the unscoped package's 0.2.0
+release is skills-only. The scoped name is a separate npm package: existing
+unscoped installations do not automatically migrate. Use the scoped commands above;
+Pi users should remove the old package declaration with Pi's package manager.
 
-An authorized package owner must manually configure npm trusted publishing for the
-existing package. Confirm npm owner permissions, account/2FA requirements, and the
-packed contents before releasing. Package ownership cannot be claimed by requesting
-an OIDC token, but no new package/bootstrap publication is needed here.
+The first scoped release, **`@jwmarshall/scopewright@0.3.0`**, is already published
+publicly. It was manually published from the verified tarball, without GitHub build
+provenance. Do not republish it or push `v0.3.0`: npm versions are immutable, and the
+tag-triggered workflow would attempt to publish that version again.
 
-Add a **GitHub Actions trusted publisher** in the existing npm package's publishing
-settings with these exact values:
+For the next tagged release, bump `package.json`, `.claude-plugin/plugin.json`,
+`.cursor-plugin/plugin.json`, and `.gemini/gemini-extension.json` together. Run
+`npm run check` and `node .github/scripts/check-npm-package.mjs`, then commit and
+push the release changes before pushing the matching new version tag.
+
+Trusted publishing has not yet been configured. Immediately before the next
+tagged release, add a **GitHub Actions trusted publisher** at
+[`@jwmarshall/scopewright` package settings](https://www.npmjs.com/package/@jwmarshall/scopewright/access)
+with these exact values:
 
 | npm trusted publisher field | Value |
 | --- | --- |
@@ -323,6 +343,7 @@ settings with these exact values:
 | Repository | `scopewright` |
 | Workflow filename | `release-harness-packages.yml` |
 | Environment | leave blank (no GitHub environment is selected) |
+| Allowed actions | Enable direct `npm publish` (the workflow does not use staged publishing) |
 
 The workflow lives at `.github/workflows/release-harness-packages.yml`. Its npm
 publish job alone receives `id-token: write`, uses Node.js 24 and a trusted-publishing
@@ -330,6 +351,10 @@ capable npm CLI (11.5.1+), and depends on validation plus all eight installation
 matrix jobs. Do not add an `NPM_TOKEN` secret as a substitute for the trusted
 publisher binding. Existing native release assets and Claude notifications keep
 their separate channel contracts.
+
+A new trusted publisher must complete its first successful publication within
+two days or be recreated. After verifying OIDC publication, select **Require
+two-factor authentication and disallow tokens** in npm's publishing access settings.
 
 Only release a tag matching the root package version and versioned native manifests.
 The publish job downloads the already-verified npm tarball from validation and

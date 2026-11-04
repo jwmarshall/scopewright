@@ -38,7 +38,7 @@ export function installPackedCLI(workspace, output = join(workspace, "artifacts"
   assert.equal(pack.name, pkg.name);
   assert.equal(pack.version, pkg.version);
   if (process.env.RELEASE_TAG) assert.equal(process.env.RELEASE_TAG, `v${pkg.version}`, "Release tag must match npm version");
-  assert.equal(pkg.name, "scopewright");
+  assert.equal(pkg.name, "@jwmarshall/scopewright");
   assert.equal(pkg.bin.scopewright, "scripts/install.mjs");
   assert.equal(Object.keys(pkg.dependencies ?? {}).length, 0, "CLI must remain dependency-free");
   assert.equal(Object.keys(pkg.optionalDependencies ?? {}).length, 0, "CLI must remain dependency-free");
