@@ -21,13 +21,10 @@ package below. For project files in any of the eight harnesses, use the managed
 project CLI. Skills are instructions, not a security sandbox; native subagents add
 the controls described in the [support matrix](./reference/HARNESS_SUPPORT.md).
 
-**npm CLI release status:** `scopewright@0.2.0` is already published under maintainer
-`jwmarshall`, but that version has no project installer CLI. The
-`npx scopewright@latest` examples below require the new **0.3.0** release; current
-`@latest` (0.2.0) cannot run them. Trusted publishing for this new release still
-requires maintainer setup. Native channels remain available now. Until 0.3.0 is
-published, an existing source copy can run the identical dependency-free CLI with
-Node.js 22 or newer:
+**Managed CLI requirements:** Scopewright **0.3.0 or newer** and Node.js 22+.
+Version 0.2.0 provides skills but has no project installer CLI. Native marketplace
+and package-manager installations retain their own lifecycle.
+An existing source checkout can run the same dependency-free CLI:
 
 ```bash
 node /path/to/scopewright/scripts/install.mjs install --harness omp --local --project /path/to/project
@@ -85,8 +82,8 @@ complete skills into `.pi/skills/`, without a Pi package declaration.
 
 ### Managed project installation and updates
 
-**After the 0.3.0 npm release**, Node.js 22+ can install files into an existing
-project without a checkout, build, global install, or runtime dependencies:
+Node.js 22+ can install files into an existing project without a checkout, build,
+global install, or runtime dependencies:
 
 ```bash
 npx scopewright@latest install --harness omp --local --project /absolute/path/to/project
@@ -163,15 +160,13 @@ with `--harness omp` selects the correct OMP adapter and does not have this prob
 
 ### Antigravity CLI — recommended Google harness
 
-Prefer managed project files rather than cloning/building a plugin. After the
-0.3.0 npm release:
+Use managed project files rather than cloning/building a plugin:
 
 ```bash
 npx scopewright@latest install --harness antigravity --local --project /absolute/path/to/project
 npx scopewright@latest update --harness antigravity --local --project /absolute/path/to/project
 ```
 
-Until then, use the source CLI equivalent above with `--harness antigravity`.
 Ask Antigravity to use `scopewright-create` and select `antigravity` for output.
 Native project reviewers use `.agents/agents/<name>.md`.
 
@@ -194,15 +189,14 @@ Antigravity is Google's recommended successor for individual users.
 stopped individual free, Pro, and Ultra Gemini CLI requests. Enterprise licenses
 and paid API-key access remain supported.
 
-For project files, after the 0.3.0 npm release:
+For project files:
 
 ```bash
 npx scopewright@latest install --harness gemini --local --project /absolute/path/to/project
 npx scopewright@latest update --harness gemini --local --project /absolute/path/to/project
 ```
 
-Until then, use the source CLI equivalent with `--harness gemini`. Use `/skills list`
-to inspect the skills, then ask Gemini to use `scopewright-create`.
+Use `/skills list` to inspect the skills, then ask Gemini to use `scopewright-create`.
 
 For native extension registration, unpack `scopewright-gemini.tar.gz` and run:
 
@@ -491,8 +485,7 @@ and OpenCode; Claude and Antigravity native plugin inventories passed separately
 Cursor discovery still requires authentication. A real filesystem-permission
 failure also confirmed that a failed update restores changed files and
 leaves ownership state unchanged. These checks invoke no models.
-No 0.3.0 publication has been performed. Maintainer setup for the existing package's
-GitHub OIDC trusted publisher is documented in
+Maintainer setup for the existing package's GitHub OIDC trusted publisher is documented in
 [Harness support](./reference/HARNESS_SUPPORT.md#npm-release-maintainer-setup).
 
 Aider has no native custom-subagent/Agent Skills contract here and is not included

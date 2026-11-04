@@ -33,10 +33,9 @@ updates at a fresh path. Existing user/project agents take precedence.
 
 ## Managed project CLI
 
-**npm CLI release pending:** `scopewright@0.2.0` is already published with maintainer
-`jwmarshall`, but it does not include the project CLI. These `npx` commands require
-the **0.3.0** release; current `@latest` (0.2.0) cannot run them. Prefer the native
-Claude marketplace or Pi package where appropriate. After 0.3.0, use Node.js 22+:
+The managed CLI requires Scopewright **0.3.0+** and Node.js 22+. Version 0.2.0
+provides skills but has no project CLI. Prefer the native Claude marketplace or
+Pi package where appropriate:
 
 ```bash
 npx scopewright@latest install --harness omp --local --project /absolute/path/to/project
@@ -49,7 +48,7 @@ There is no global mode or home-configuration write. `--help` and `--version` ar
 supported. Fetching `@latest` does not update files by itself: invoke `update`
 explicitly for the selected previously-managed harness.
 
-Until 0.3.0 publication, the equivalent command from an existing source copy is:
+An existing source checkout can run the equivalent command without a build:
 
 ```bash
 node /path/to/scopewright/scripts/install.mjs install --harness omp --local --project /path/to/project
@@ -213,9 +212,7 @@ passed through the official CLI/loaders for Codex, Pi, OMP, Gemini, and OpenCode
 subject to the native-agent limits below. Claude and Antigravity native plugin
 inventories passed; their npm project files were copied/updated but lack an offline
 project inventory check. Cursor authenticated discovery remains skipped.
-The published 0.2.0 package has no project CLI; no 0.3.0 publication has been
-performed. Native package inventory does not prove model behavior or runtime
-enforcement.
+Native package inventory does not prove model behavior or runtime enforcement.
 
 The installation matrix installs actual pinned harness binaries in clean containers.
 Discovery must use the harness CLI or its installed official loader, not filename or
@@ -308,15 +305,14 @@ Local packaging/verification does not publish anything.
 
 ### npm release maintainer setup
 
-The existing npm package `scopewright` is published at **0.2.0**, with maintainer
-`jwmarshall`. That package lacks the new project CLI. Release this feature as
-**0.3.0**; never attempt to overwrite the existing 0.2.0 registry version.
+The npm package `scopewright` is maintained by `jwmarshall`. Version **0.3.0**
+introduces the managed project CLI; version 0.2.0 is skills-only. npm versions are
+immutable: always bump the package and versioned manifests for a new release.
 
 An authorized package owner must manually configure npm trusted publishing for the
 existing package. Confirm npm owner permissions, account/2FA requirements, and the
 packed contents before releasing. Package ownership cannot be claimed by requesting
-an OIDC token, but no new package/bootstrap publication is needed here. Nothing in
-this change performs a publication.
+an OIDC token, but no new package/bootstrap publication is needed here.
 
 Add a **GitHub Actions trusted publisher** in the existing npm package's publishing
 settings with these exact values:
@@ -338,9 +334,9 @@ their separate channel contracts.
 Only release a tag matching the root package version and versioned native manifests.
 The publish job downloads the already-verified npm tarball from validation and
 publishes that artifact, rather than repacking a potentially different tree.
-Before enabling a production release, complete npm-side setup and run the revised
-checks; registry authentication/publication and the new cutover remain unverified
-until actually exercised. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers)
+Before enabling automated production releases, complete npm-side setup and run the
+checks. Local npm authentication is separate from GitHub OIDC; a successful local
+publish does not validate trusted publishing. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers)
 for account and runner prerequisites.
 
 ## Prior art

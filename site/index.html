@@ -27,17 +27,17 @@
 <h2>Your standards.<br><em>Written into the job.</em></h2>
 <p>Choose from eight coding agents. Start with Claude’s native marketplace or Pi’s existing npm skills package; managed project files cover all eight. Antigravity is the recommended Google harness.</p>
 <a class="text-link" href="https://github.com/jwmarshall/scopewright#usage">Full setup instructions <span aria-hidden="true">↗</span></a>
-<p><strong>New CLI release pending:</strong> <code>scopewright@0.2.0</code> is published under maintainer <code>jwmarshall</code>, but has no project installer CLI. The <code>npx scopewright@latest</code> examples require the new <strong>0.3.0</strong> release; current <code>@latest</code> (0.2.0) cannot run them. Until then, use an existing source copy’s <code>node /path/to/scopewright/scripts/install.mjs install --harness &lt;harness&gt; --local --project /path/to/project</code>; use <code>update</code> explicitly for managed updates. No build or dependency installation is needed.</p>
+<p><strong>Managed CLI:</strong> use Scopewright <strong>0.3.0 or newer</strong> with Node.js 22+. Version 0.2.0 provides skills but has no project CLI. No checkout, build, or global installation is required; run <code>update</code> explicitly to refresh managed files.</p>
 <p>Project paths must already exist; omitting <code>--project</code> targets the current directory. There is no global CLI mode. Complete skill references and native adapters are copied; keep ownership state, but the source/npm cache can be removed afterward. Matching release archives are the secondary/offline channel, including native plugins/extensions; clone/build is for contributors.</p>
 <p>Google's <a href="https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/">June 18, 2026 transition</a> ended individual free, Pro, and Ultra Gemini CLI requests. Enterprise licenses and paid API-key access remain supported.</p>
-<p>The packed npm CLI and all eight local installation smoke runs passed. Cursor’s authenticated discovery remains unverified; native discovery does not prove model behavior or runtime tool enforcement. The 0.3.0 release has not been published.</p>
+<p>The packed npm CLI and all eight local installation smoke runs passed. Cursor’s authenticated discovery remains unverified; native discovery does not prove model behavior or runtime tool enforcement.</p>
 </div>
 <div class="setup">
 <label for="agent">YOUR CODING AGENT</label>
 <select id="agent"><option value="claude">Claude Code</option><option value="pi">Pi</option><option value="omp">OhMyPi</option><option value="codex">Codex</option><option value="antigravity">Antigravity CLI (recommended Google)</option><option value="gemini">Gemini CLI (legacy / enterprise / paid API-key)</option><option value="opencode">OpenCode</option><option value="cursor">Cursor</option></select>
 <p id="setup-note">Register the native marketplace and install its plugin:</p>
 <div class="command"><code id="command">claude plugin marketplace add jwmarshall/scopewright &amp;&amp; claude plugin install scopewright@scopewright</code><button id="copy" aria-label="Copy command">Copy</button></div>
-<p class="setup-foot" id="setup-foot">Invoke /scopewright:scopewright-create after installation. Use Claude’s plugin manager for updates. Managed project files with --harness claude require the new 0.3.0 npm release; current 0.2.0 has no project CLI. See full setup instructions.</p>
+<p class="setup-foot" id="setup-foot">Invoke /scopewright:scopewright-create after installation. Use Claude’s plugin manager for updates. Managed project files are an alternative with --harness claude (Scopewright 0.3.0+). See full setup instructions.</p>
 <span id="copy-status" role="status" aria-live="polite"></span>
 </div>
 </div>

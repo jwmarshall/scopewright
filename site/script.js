@@ -18,13 +18,13 @@ agent.addEventListener('change', () => {
   if (agent.value === 'claude') {
     note.textContent = 'Register the native marketplace and install its plugin:';
     command.textContent = 'claude plugin marketplace add jwmarshall/scopewright && claude plugin install scopewright@scopewright';
-    foot.textContent = 'Invoke /scopewright:scopewright-create after installation. Use Claude’s plugin manager for updates. Managed project files with --harness claude require the new 0.3.0 npm release; current 0.2.0 has no project CLI. See full setup instructions.';
+    foot.textContent = 'Invoke /scopewright:scopewright-create after installation. Use Claude’s plugin manager for updates. Managed project files are an alternative with --harness claude (Scopewright 0.3.0+). See full setup instructions.';
   } else if (agent.value === 'pi') {
     note.textContent = 'From your project, install Pi’s existing native npm skills package:';
     command.textContent = 'pi install --local npm:scopewright';
     foot.textContent = 'Pi manages its package cache; --local records the declaration in this project. Direct Git also works: pi install --local git:github.com/jwmarshall/scopewright. Grant project trust and restart/reload Pi, then invoke /skill:scopewright-create. Use Pi’s package manager for updates. Reviewers run as skills in the current session; no native subagent or companion extension is installed.';
   } else {
-    note.textContent = 'After the 0.3.0 npm release only (current 0.2.0 has no CLI): install ' + names[agent.value] + ' files into your existing project (Node.js 22+):';
+    note.textContent = 'Install ' + names[agent.value] + ' files into your existing project (Scopewright 0.3.0+, Node.js 22+):';
     command.textContent = 'npx scopewright@latest install --harness ' + agent.value + ' --local --project /absolute/path/to/project';
     foot.textContent = 'Explicit update: npx scopewright@latest update --harness ' + agent.value + ' --local --project /absolute/path/to/project. Fetching @latest alone does not refresh files. Ownership/hashes live in .scopewright/install.json; shared .agents/skills/ updates refresh all owners without touching other adapters. Edited or unmanaged files and internal symlinks fail preflight without changes. No force, adoption, or global mode: back up and move conflicting files yourself. ' + details[agent.value];
   }
