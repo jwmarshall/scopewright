@@ -16,21 +16,27 @@ defenses, and clear verdict authority.
 
 ## Usage
 
-Install separately in each harness. Skills are instructions, not a security sandbox;
-native subagents add the controls described in the [support matrix](./reference/HARNESS_SUPPORT.md).
+Install separately in each harness. Prefer the native Claude marketplace or Pi
+package below. For project files in any of the eight harnesses, use the managed
+project CLI. Skills are instructions, not a security sandbox; native subagents add
+the controls described in the [support matrix](./reference/HARNESS_SUPPORT.md).
 
-From a checkout, build only the resources for your harness:
+**npm CLI release status:** `scopewright@0.2.0` is already published under maintainer
+`jwmarshall`, but that version has no project installer CLI. The
+`npx scopewright@latest` examples below require the new **0.3.0** release; current
+`@latest` (0.2.0) cannot run them. Trusted publishing for this new release still
+requires maintainer setup. Native channels remain available now. Until 0.3.0 is
+published, an existing source copy can run the identical dependency-free CLI with
+Node.js 22 or newer:
 
 ```bash
-git clone https://github.com/jwmarshall/scopewright.git
-cd scopewright
+node /path/to/scopewright/scripts/install.mjs install --harness omp --local --project /path/to/project
+node /path/to/scopewright/scripts/install.mjs update --harness omp --local --project /path/to/project
 ```
 
-The commands below need Node.js but no `npm install`. Version-tag releases publish
-`scopewright-<harness>.tar.gz` for all eight harnesses. Unpack the matching archive
-and use its directory in place of `dist/<harness>`; the checkout is not needed.
-Builders refuse existing output directories. For updates, choose a fresh destination:
-`npm run package:<harness> -- /absolute/path/to/new-package`.
+No `npm install` or build is required for that source equivalent. Release archives
+are an alternative for offline/native-package use; building a checkout is a
+[contributor workflow](#multi-agent-design), not the default end-user installation.
 
 ### Claude Code
 
@@ -42,154 +48,205 @@ claude plugin install scopewright@scopewright
 ```
 
 In Claude Code, run `/scopewright:scopewright-create [what the reviewer should evaluate]`.
-For a minimal local plugin or an unpacked release:
+Use Claude's plugin manager to update the native installation. The managed CLI
+with `--harness claude` is an alternative for project files, installing complete
+skills to `.claude/skills/` and the reviewer to `.claude/agents/`.
+
+For offline/session-only plugin use, unpack `scopewright-claude.tar.gz` from a
+[tagged release](https://github.com/jwmarshall/scopewright/releases):
 
 ```bash
-npm run package:claude
-claude --plugin-dir /absolute/path/to/scopewright/dist/claude
+claude --plugin-dir /absolute/path/to/unpacked-claude-package
 ```
 
-`--plugin-dir` loads the plugin for that session; keep the package directory.
-For persistent installation, register the staged or unpacked directory with
-`claude plugin marketplace add /absolute/path/to/package`, then run the same
-`claude plugin install scopewright@scopewright` command above.
+Keep that directory: `--plugin-dir` loads it for the session. For persistent native
+installation, register the unpacked directory using
+`claude plugin marketplace add /absolute/path/to/unpacked-claude-package`, then use
+the same `claude plugin install scopewright@scopewright` command above.
 
 ### Pi
 
+Run from your project to register the existing npm skills package with Pi:
+
 ```bash
-npm run package:pi
-pi install ./dist/pi
+pi install --local npm:scopewright
 ```
 
-Run `/skill:scopewright-create [what the reviewer should evaluate]`.
-The Pi-only package exposes the canonical skills through `pi.skills`; it contains
-no native agents or companion extension. Generated reviewers run as skills in the
-current session. Keep the local package directory and restart Pi after installation.
-The repository's direct Git/package installation remains available, but the staged
-package avoids distributing unrelated adapters.
+Direct Git is also supported:
+`pi install --local git:github.com/jwmarshall/scopewright`.
+
+Pi manages its own package cache; `--local` makes the package declaration
+project-scoped. Grant project trust when prompted and restart/reload Pi, then run
+`/skill:scopewright-create [what the reviewer should evaluate]`. Use Pi's package
+manager for native updates. The package exposes canonical skills through `pi.skills`,
+with no native agents or companion extension; reviewers run as skills in the current
+session. The managed CLI with `--harness pi` is an alternative that copies only
+complete skills into `.pi/skills/`, without a Pi package declaration.
+
+### Managed project installation and updates
+
+**After the 0.3.0 npm release**, Node.js 22+ can install files into an existing
+project without a checkout, build, global install, or runtime dependencies:
+
+```bash
+npx scopewright@latest install --harness omp --local --project /absolute/path/to/project
+npx scopewright@latest update --harness omp --local --project /absolute/path/to/project
+```
+
+Replace `omp` with any value in the table. `--project` defaults to the current
+directory; `--local` is optional but recommended to make project scope explicit.
+There is no `--global` support and no home-directory configuration is written.
+`--help` and `--version` are available. Fetching `@latest` alone does **not** refresh
+installed files: run the explicit `update` command for every installed harness you
+want to refresh.
+
+| `--harness` | Complete skill copies | Native reviewer copy |
+| --- | --- | --- |
+| `claude` | `.claude/skills/` | `.claude/agents/` |
+| `codex` | `.agents/skills/` | `.codex/agents/` |
+| `pi` | `.pi/skills/` | none |
+| `omp` | `.omp/skills/` | `.omp/agents/` |
+| `antigravity` | `.agents/skills/` | `.agents/agents/` |
+| `gemini` | `.gemini/skills/` | `.gemini/agents/` |
+| `opencode` | `.agents/skills/` | `.opencode/agents/` |
+| `cursor` | `.agents/skills/` | `.cursor/agents/` |
+
+Both bundled skills include their full reference trees. The copied adapter is the
+existing generated harness adapter, not a transformed prompt. Resources are
+self-contained: the source package or npm cache can be removed after installation.
+
+#### Ownership and conflicts
+
+The CLI records file SHA-256 hashes, owning harnesses, and each harness's last
+installed version in `.scopewright/install.json`. Keep this state with the managed
+files. `install` accepts absent destinations or unchanged, already-managed files;
+`update` requires that the selected harness was previously managed.
+
+Both commands refresh the selected harness's resources. An obsolete unchanged file
+is removed only when no other harness owns it. Codex, OpenCode, Cursor, and
+Antigravity share `.agents/skills/`: refreshing those skills updates the shared
+hash/content for every owner, without changing the other harnesses' native adapters.
+Unrelated files and user-created reviewers are preserved.
+
+Edited managed files, unmanaged existing destinations, symlinks, and symlinked
+internal destination/resource ancestors are conflicts. Preflight rejects these
+before resource writes, leaving files unchanged. An explicitly supplied project-root
+symlink alias is accepted; internal symlinks are not. There is no force mode and no
+automatic adoption of older manual/native installs.
+
+To migrate an old unmanaged file install or resolve customizations, **you** must
+back up and move the conflicting installed files outside the destination paths
+before running `install` again. For edited managed files, preserve your edits and
+restore the recorded managed version before updating, or move the conflicting
+files aside and rerun. The CLI never creates backups or merges edits for you.
+Do not remove ownership state just to bypass a conflict, and do not overwrite
+locally authored reviewers without preserving them.
 
 ### OhMyPi
 
-Build and install the OMP-only package from a checkout:
+Use the managed project command above with `--harness omp`. Restart OhMyPi, then
+use `/skill:scopewright-create`. Ask the parent to dispatch `root-prompt-reviewer`
+through `task`, supplying `<target_files>` paths.
+
+For native package use, unpack `scopewright-omp.tar.gz`, then:
 
 ```bash
-# From the checkout:
-npm run package:omp
-omp install ./dist/omp
+omp install /absolute/path/to/unpacked-omp-package
+omp plugin list --json
 ```
 
-Restart OhMyPi, then use `/skill:scopewright-create`. Ask the parent to dispatch
-`root-prompt-reviewer` through `task`, supplying `<target_files>` paths.
-Inspect the installed package with `omp plugin list --json`.
-
-Local `omp install` links the staged directory: keep `dist/omp` on disk.
-The builder refuses an existing destination; for updates, stage into a new directory
-(`npm run package:omp -- /absolute/path/to/new-package`) and install that path.
-Preserve customized reviewers before switching installations; existing user/project
-agents with the same name take precedence over package agents.
-
-For project-only installation, copy `skills/scopewright-create` and
-`skills/root-prompt-reviewer` to `.omp/skills/`, and the native
-`.omp/agents/root-prompt-reviewer.md` to `.omp/agents/`.
-Do not run `omp install` on the repository root: its `agents/` contains the Claude
-plugin adapter. The staged package contains only OMP-native agents and shared skills,
-with no runtime extension code or dependencies.
-
+Keep the package directory: native `omp install` links it. Use a fresh unpacked
+directory for native package updates, preserving customized agents first; existing
+user/project agents take precedence. Do **not** run `omp install` on the repository
+root: root `agents/` contains Claude plugin definitions. The root **Scopewright CLI**
+with `--harness omp` selects the correct OMP adapter and does not have this problem.
 
 ### Antigravity CLI — recommended Google harness
 
+Prefer managed project files rather than cloning/building a plugin. After the
+0.3.0 npm release:
+
 ```bash
-# From the checkout:
-npm run package:antigravity
-agy plugin install ./dist/antigravity
+npx scopewright@latest install --harness antigravity --local --project /absolute/path/to/project
+npx scopewright@latest update --harness antigravity --local --project /absolute/path/to/project
 ```
 
-Inspect installed skills and agents with `agy plugin list --json`. Ask Antigravity to
-use `scopewright-create` and select `antigravity` when choosing the output harness.
-Native reviewers use `.agents/agents/<name>.md`.
+Until then, use the source CLI equivalent above with `--harness antigravity`.
+Ask Antigravity to use `scopewright-create` and select `antigravity` for output.
+Native project reviewers use `.agents/agents/<name>.md`.
 
-The build stages a native plugin from `.antigravity/plugin.json`, canonical skills,
-and the generated `.agents/agents/root-prompt-reviewer.md`. Install the staged
-directory, not the repository root. No dependencies are needed.
+If you need native plugin registration instead, unpack
+`scopewright-antigravity.tar.gz` and run:
 
-Installation and inventory do not prove model behavior or runtime tool enforcement.
-See the [support matrix](./reference/HARNESS_SUPPORT.md) for verification limits.
+```bash
+agy plugin install /absolute/path/to/unpacked-antigravity-package
+agy plugin list --json
+```
 
-Matching version tags publish `scopewright-antigravity.tar.gz`; unpack it and install
-its directory with `agy plugin install`. The legacy Gemini archive remains separate.
+Install the matching plugin directory, not the repository root or the legacy Gemini
+extension. Installation/inventory do not prove model behavior or runtime tool
+enforcement; see the [support matrix](./reference/HARNESS_SUPPORT.md).
 
 ### Gemini CLI — legacy / enterprise / paid API-key
 
 Antigravity is Google's recommended successor for individual users.
 [Google's June 18, 2026 transition](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/)
-stopped individual free, Pro, and Ultra Gemini CLI requests.
+stopped individual free, Pro, and Ultra Gemini CLI requests. Enterprise licenses
+and paid API-key access remain supported.
 
-Enterprise licenses and paid API-key access remain supported. This repository
-retains the separate Gemini extension; it is not an Antigravity plugin.
+For project files, after the 0.3.0 npm release:
 
 ```bash
-# From the checkout:
-npm run package:gemini
-gemini extensions install ./dist/gemini
+npx scopewright@latest install --harness gemini --local --project /absolute/path/to/project
+npx scopewright@latest update --harness gemini --local --project /absolute/path/to/project
 ```
 
-Use `/skills list` to inspect the skills, then ask Gemini to use `scopewright-create`.
-The repository root is a Claude plugin, not a Gemini extension. The build stages
-only the canonical skills, references, and Gemini reviewer. No dependencies are needed.
-Version-tag releases publish `scopewright-gemini.tar.gz`; unpack it and install its
-directory with `gemini extensions install`.
+Until then, use the source CLI equivalent with `--harness gemini`. Use `/skills list`
+to inspect the skills, then ask Gemini to use `scopewright-create`.
+
+For native extension registration, unpack `scopewright-gemini.tar.gz` and run:
+
+```bash
+gemini extensions install /absolute/path/to/unpacked-gemini-package
+```
+
+This remains a separate Gemini extension, not an Antigravity plugin. The repository
+root is a Claude plugin, not a Gemini extension.
 
 ### Codex
 
-```bash
-npm run package:codex
-node ./dist/codex/install.mjs /absolute/path/to/your-project
-```
-
-Installs both complete skills into `.agents/skills/` and the native reviewer into
-`.codex/agents/`. Restart Codex, then use `$scopewright-create` or ask it to use
-`scopewright-create`. Ask the parent to delegate to `root-prompt-reviewer` for a
-review. Enforced filesystem isolation requires the **parent's read-only sandbox**;
-the custom agent cannot override it.
+Use the managed project commands with `--harness codex`. Restart Codex, then use
+`$scopewright-create` or ask it to use `scopewright-create`. Ask the parent to delegate
+to `root-prompt-reviewer` for a review. Enforced filesystem isolation requires the
+**parent's read-only sandbox**; the custom agent cannot override it.
 
 ### OpenCode
 
-```bash
-npm run package:opencode
-node ./dist/opencode/install.mjs /absolute/path/to/your-project
-```
-
-Installs complete skills into `.agents/skills/` and the native reviewer into
-`.opencode/agents/`. Restart OpenCode, ask it to use `scopewright-create`, or invoke
-`@root-prompt-reviewer` with `<target_files>` paths. The native adapter keeps its
-deny-by-default tool permissions.
+Use the managed project commands with `--harness opencode`. Restart OpenCode, ask it
+to use `scopewright-create`, or invoke `@root-prompt-reviewer` with `<target_files>`
+paths. The native adapter keeps its deny-by-default tool permissions.
 
 ### Cursor
 
+Use the managed project commands with `--harness cursor`. Restart Cursor and ask it
+to use `scopewright-create` or delegate to `root-prompt-reviewer`. The Cursor archive
+also includes its native plugin manifest and logo; marketplace approval is not
+assumed. Authenticated plugin inventory cannot be verified by the offline harness.
+
+### Archive / offline project installers
+
+Unpack the matching Codex, OpenCode, or Cursor release archive. Its bundled installer
+infers the harness from package metadata and uses the same managed ownership state:
+
 ```bash
-npm run package:cursor
-node ./dist/cursor/install.mjs /absolute/path/to/your-project
+node /absolute/path/to/unpacked-package/install.mjs install --local --project /absolute/path/to/project
+node /absolute/path/to/new-unpacked-package/install.mjs update --local --project /absolute/path/to/project
 ```
 
-Installs complete skills into `.agents/skills/` and the native reviewer into
-`.cursor/agents/`. Restart Cursor and ask it to use `scopewright-create` or delegate
-to `root-prompt-reviewer`. The package also includes its Cursor plugin manifest
-and logo for native plugin loading; marketplace approval is not assumed.
-Cursor's authenticated plugin inventory cannot be verified by the offline harness.
-
-### Project installation safety
-
-The bundled `install.mjs` in Codex, OpenCode, and Cursor packages requires an
-existing project directory. It preflights both skill directories and the native
-adapter, refusing existing destinations and symlinked destination ancestors before
-copying anything. Unrelated project files are preserved; no credentials, global
-settings, or runtime dependencies are installed. Copied resources are self-contained,
-so the package directory can be removed after a successful project installation.
-
-For updates, preserve customized skills and reviewers, move their existing
-destinations aside, then run the new package's installer. There is no force/overwrite
-mode. A generic Agent Skills installer remains an alternative for **skills only**;
-it does not install the native adapters.
+The old positional-only project argument is no longer supported. Local native
+Pi/OMP package installs and Claude `--plugin-dir` loads need their source directories;
+managed project copies do not. Generic Agent Skills installers remain an alternative
+for **skills only**, not native adapters.
 
 ### Reviewer creation
 
@@ -347,10 +404,23 @@ theatrical role-play.
 
 `skills/` is the only authored skill tree. Each skill bundles its own references,
 so installing a single skill never loses its framework or rubric.
-Harness-specific packages expose only the matching native adapter and manifest.
-`npm run package:<harness>` stages one package; `npm run package:all` stages all eight.
-Native plugin/package managers handle Claude Code, Pi, OMP, Antigravity, and Gemini.
-Codex, OpenCode, and Cursor packages include a conservative project-copy installer.
+The root npm package exposes the dependency-free project CLI and all eight resource
+sets. Harness-specific archives expose only the matching adapter and manifest;
+Codex, OpenCode, and Cursor also bundle the managed project installer.
+Native plugin/package managers remain separate from project-copy ownership.
+
+For contributors building archives from a checkout, Node.js 22+ is sufficient;
+no `npm install` is required:
+
+```bash
+npm run package:omp
+# Or all eight:
+npm run package:all
+```
+
+Builders refuse existing destinations. Use
+`npm run package:omp -- /absolute/path/to/fresh-package` for a fresh output path.
+These commands build distribution artifacts; they do not update installed projects.
 
 The canonical reviewer lives in `skills/root-prompt-reviewer/SKILL.md`.
 `npm run sync:agents` generates the harness adapters; `npm run check` rejects drift
@@ -375,8 +445,8 @@ Gemini definitions into the staged extension's root `agents/`.
 - [Agent Skills specification](https://agentskills.io/specification):
   portable `SKILL.md` frontmatter and skill-local `references/`.
 
-The project-copy installer is limited to the three packages that need it; it does
-not invent a shared native plugin format or change global harness settings.
+The root project installer supports all eight harnesses without inventing a shared
+native plugin format or changing global harness settings.
 See the [support matrix](./reference/HARNESS_SUPPORT.md) for vendor sources.
 
 ### Migration
@@ -389,12 +459,17 @@ or overwritten automatically.
 
 The framework and rubric moved into their owning skill's `references/` directory.
 Update external links to those paths. No compatibility aliases remain.
-Direct Gemini installation from this Git repository is replaced by clone → build →
-install, or installation of the unpacked Gemini-only release archive.
+Direct Gemini extension installation from the repository root is replaced by the
+managed project CLI, or the unpacked Gemini-only archive for native extension use.
 The ambiguous `scopewright.tar.gz` release name is replaced by
 `scopewright-gemini.tar.gz`; every release asset now names its target harness.
-For direct script usage, use `node scripts/package.mjs <harness> [output]`.
-The `npm run package:<harness>` commands remain the supported per-harness entry points.
+For contributor builds, use `node scripts/package.mjs <harness> [output]` or the
+`npm run package:<harness>` entry points.
+
+The managed CLI replaces positional-only bundle commands with explicit `install`
+and `update` plus `--local --project`. Existing unmanaged file installs are not
+adopted: preserve and move conflicting files yourself before installing. Native
+marketplace/package-manager installations retain their own update lifecycle.
 
 ### Verification and releases
 
@@ -408,6 +483,17 @@ uses real CLIs/loaders and exercises unpacked project bundles and native package
 Cursor's authenticated discovery remains explicitly skipped. Tags must match the
 package and versioned native manifests. Claude directory notifications remain
 version-triggered, and the website remains deployed through GitHub Pages.
+
+Local verification passed: 35 tests and adapter synchronization, packed npm
+install/update/conflict checks for all eight targets, and all eight pinned Docker
+installation runs. Official project discovery passed for Codex, Pi, OMP, Gemini,
+and OpenCode; Claude and Antigravity native plugin inventories passed separately.
+Cursor discovery still requires authentication. A real filesystem-permission
+failure also confirmed that a failed update restores changed files and
+leaves ownership state unchanged. These checks invoke no models.
+No 0.3.0 publication has been performed. Maintainer setup for the existing package's
+GitHub OIDC trusted publisher is documented in
+[Harness support](./reference/HARNESS_SUPPORT.md#npm-release-maintainer-setup).
 
 Aider has no native custom-subagent/Agent Skills contract here and is not included
 in the supported installation matrix.

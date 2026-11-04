@@ -1,9 +1,23 @@
 {
   "name": "scopewright",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "SCOPED read-only reviewers for Claude Code, Codex, Pi, OhMyPi, Antigravity CLI, legacy Gemini CLI, OpenCode, and Cursor.",
   "license": "MIT",
   "keywords": ["pi-package", "agent-skills", "codex", "oh-my-pi", "antigravity", "gemini-cli", "opencode", "cursor", "code-review", "scoped"],
+  "bin": {
+    "scopewright": "scripts/install.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jwmarshall/scopewright.git"
+  },
+  "homepage": "https://jwmarshall.github.io/scopewright/",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "sync:agents": "node scripts/sync-agents.mjs",
     "check": "node scripts/sync-agents.mjs --check && npm test",
@@ -34,7 +48,6 @@
     "scripts/sync-agents.mjs",
     "scripts/package.mjs",
     "scripts/install.mjs",
-    "tests/*.test.mjs",
     "reference/",
     "README.md",
     "LICENSE"

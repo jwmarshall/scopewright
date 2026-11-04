@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
@@ -8,7 +8,7 @@ import { createInterface } from "node:readline";
 const harness = process.env.HARNESS;
 const source = "/package";
 const home = homedir();
-const work = "/tmp/scopewright-work";
+let work = "/tmp/scopewright-work";
 const expected = {
   "scopewright-create": "SCOPED_FRAMEWORK_V4.md",
   "root-prompt-reviewer": "ROOT_PROMPT_DESIGN_RUBRIC.md",
@@ -52,7 +52,7 @@ function installProjectBundle(adapter) {
   const unpacked = archive(stage());
   const manifest = JSON.parse(readFileSync(join(unpacked, "package.json"), "utf8"));
   assert.equal(manifest.scopewright.harness, harness);
-  run("node", [join(unpacked, "install.mjs"), work]);
+  run("node", [join(unpacked, "install.mjs"), "install", "--local", "--project", work]);
   installedResources(join(work, ".agents"));
   assert.deepEqual(readFileSync(join(work, adapter)), readFileSync(join(source, adapter)),
     "Project installer changed the generated native adapter");
@@ -60,6 +60,29 @@ function installProjectBundle(adapter) {
     "Project installer unexpectedly installed global skills");
   return unpacked;
 }
+
+let npmCLI;
+function installNpmProject(adapter) {
+  if (!npmCLI) {
+    const { installPackedCLI } = npmHelpers;
+    npmCLI = installPackedCLI("/tmp/scopewright-npm");
+  }
+  work = `/tmp/${harness}-npm-project`;
+  mkdirSync(work);
+  process.chdir(work);
+  run(npmCLI.bin, ["install", "--harness", harness, "--local", "--project", work]);
+  run(npmCLI.bin, ["update", "--harness", harness, "--local", "--project", work]);
+  const skillRoot = ["codex", "opencode", "cursor", "antigravity"].includes(harness) ? ".agents" : `.${harness}`;
+  installedResources(join(work, skillRoot));
+  if (adapter) {
+    assert.deepEqual(readFileSync(join(work, adapter)), readFileSync(join(source, adapter)),
+      "npm CLI changed the generated native adapter");
+  }
+  assert.ok(existsSync(join(work, ".scopewright", "install.json")));
+  return join(work, skillRoot);
+}
+
+const npmHelpers = await import("/package/.github/scripts/check-npm-package.mjs");
 
 function resources(skills, location = "path") {
   for (const [name, resource] of Object.entries(expected)) {
@@ -178,12 +201,16 @@ switch (harness) {
     assert.match(inventory, /Agents \(1\)/, inventory);
     for (const name of Object.keys(expected)) assert.ok(inventory.includes(name), inventory);
     installedResources(plugin.installPath);
+    installNpmProject(".claude/agents/root-prompt-reviewer.md");
+    report.limits.push("Claude project resources were installed by the packed npm CLI; project skill/agent inventory has no credential-free CLI command. Native plugin inventory above is verified.");
     break;
   }
   case "codex": {
     version("codex");
     process.env.CODEX_HOME = join(home, ".codex");
     installProjectBundle(".codex/agents/root-prompt-reviewer.toml");
+    await codexSkills();
+    installNpmProject(".codex/agents/root-prompt-reviewer.toml");
     await codexSkills();
     report.limits.push("Custom agent TOML is applied lazily at subagent spawn; the installed CLI has no offline custom-agent validation/list API. Native agent execution is not verified.");
     break;
@@ -205,6 +232,18 @@ switch (harness) {
     resources(loaded.skills, "filePath");
     for (const skill of loaded.skills.filter(item => item.name in expected)) {
       assert.equal(skill.sourceInfo.origin, "package", "Pi bypassed package manifest discovery");
+    }
+    // Discard only this smoke's isolated user package state before project discovery.
+    rmSync(join(home, ".pi"), { recursive: true, force: true });
+    installNpmProject();
+    const projectLoader = new DefaultResourceLoader({ cwd: work, agentDir: join(home, ".pi", "agent") });
+    await projectLoader.reload();
+    const projectSkills = projectLoader.getSkills();
+    assert.deepEqual(projectSkills.diagnostics, [], "Pi rejected npm-installed project resources");
+    resources(projectSkills.skills, "filePath");
+    for (const skill of projectSkills.skills.filter(item => item.name in expected)) {
+      assert.equal(realpathSync(skill.filePath), join(work, ".pi", "skills", skill.name, "SKILL.md"),
+        "Pi bypassed the npm-installed project skill");
     }
     report.limits.push("Pi has no native subagent API; the reviewer is an Agent Skill.");
     break;
@@ -232,6 +271,20 @@ switch (harness) {
     }
     console.log(`Loaded native reviewer through ${reviewer.filePath}; built-in tools: ${reviewer.tools.join(", ")}`);
     report.limits.push("Local omp install links the staged directory; keep it on disk. Discovery and parsed built-in tools are verified, not model execution or additive extension/MCP tool enforcement.");
+    rmSync(join(home, ".omp"), { recursive: true, force: true });
+    installNpmProject(".omp/agents/root-prompt-reviewer.md");
+    const projectSkills = await loadCapability("skills", { cwd: work, providers: ["native"] });
+    assert.deepEqual(projectSkills.warnings, [], "OMP rejected npm-installed project skills");
+    resources(projectSkills.items);
+    for (const skill of projectSkills.items.filter(item => item.name in expected)) {
+      assert.equal(realpathSync(skill.path), join(work, ".omp", "skills", skill.name, "SKILL.md"),
+        "OMP bypassed the npm-installed project skill");
+    }
+    const projectAgents = await discoverAgents(work);
+    const projectReviewer = projectAgents.agents.find(item => item.name === "root-prompt-reviewer");
+    assert.ok(projectReviewer, "OMP did not discover the npm-installed project reviewer");
+    assert.equal(realpathSync(projectReviewer.filePath), join(work, ".omp", "agents", "root-prompt-reviewer.md"));
+    assert.deepEqual(projectReviewer.tools.toSorted(), ["glob", "grep", "read"]);
     break;
   }
   case "antigravity": {
@@ -244,6 +297,8 @@ switch (harness) {
     run("agy", ["plugin", "install", unpacked]);
     antigravityDiscovery();
     report.limits.push("Native agent inventory is verified by the real CLI; parsed effective tool policy and model-backed agent execution are not verified.");
+    installNpmProject(".agents/agents/root-prompt-reviewer.md");
+    report.limits.push("Antigravity npm-installed project resources are preserved; native plugin inventory is verified separately, not project skill/agent discovery.");
     break;
   }
   case "gemini": {
@@ -259,29 +314,37 @@ switch (harness) {
     run("gemini", ["extensions", "install", unpacked, "--consent"]);
     await geminiDiscovery(installed);
     report.limits.push("Agent definitions are parsed by the matching official core SDK; no model-backed agent execution is performed.");
+    run("gemini", ["extensions", "uninstall", "scopewright"]);
+    const projectRoot = installNpmProject(".gemini/agents/root-prompt-reviewer.md");
+    await geminiDiscovery(projectRoot);
     break;
   }
   case "opencode": {
     version("opencode");
     installProjectBundle(".opencode/agents/root-prompt-reviewer.md");
-    const skills = JSON.parse(run("opencode", ["debug", "skill"]));
-    resources(skills, "location");
-    for (const skill of skills.filter(item => item.name in expected)) {
-      assert.equal(realpathSync(skill.location), join(work, ".agents", "skills", skill.name, "SKILL.md"),
-        "OpenCode bypassed the project-installed skill");
+    function discoverOpenCode() {
+      const skills = JSON.parse(run("opencode", ["debug", "skill"]));
+      resources(skills, "location");
+      for (const skill of skills.filter(item => item.name in expected)) {
+        assert.equal(realpathSync(skill.location), join(work, ".agents", "skills", skill.name, "SKILL.md"),
+          "OpenCode bypassed the project-installed skill");
+      }
+      const listing = run("opencode", ["agent", "list"]);
+      assert.ok(listing.includes("root-prompt-reviewer (subagent)"), listing);
+      const agent = JSON.parse(run("opencode", ["debug", "agent", "root-prompt-reviewer"]));
+      assert.equal(agent.mode, "subagent");
+      const permissions = agent.permission;
+      assert.ok(permissions.some(item => item.permission === "*" && item.action === "deny"), "OpenCode lost deny-by-default permissions");
+      for (const tool of ["read", "glob", "grep", "list"]) {
+        assert.ok(permissions.some(item => item.permission === tool && item.action === "allow"), `OpenCode lost ${tool} permission`);
+      }
+      for (const tool of ["bash", "edit", "write", "task", "webfetch"]) {
+        assert.equal(agent.tools[tool], false, `OpenCode unexpectedly enabled ${tool}`);
+      }
     }
-    const listing = run("opencode", ["agent", "list"]);
-    assert.ok(listing.includes("root-prompt-reviewer (subagent)"), listing);
-    const agent = JSON.parse(run("opencode", ["debug", "agent", "root-prompt-reviewer"]));
-    assert.equal(agent.mode, "subagent");
-    const permissions = agent.permission;
-    assert.ok(permissions.some(item => item.permission === "*" && item.action === "deny"), "OpenCode lost deny-by-default permissions");
-    for (const tool of ["read", "glob", "grep", "list"]) {
-      assert.ok(permissions.some(item => item.permission === tool && item.action === "allow"), `OpenCode lost ${tool} permission`);
-    }
-    for (const tool of ["bash", "edit", "write", "task", "webfetch"]) {
-      assert.equal(agent.tools[tool], false, `OpenCode unexpectedly enabled ${tool}`);
-    }
+    discoverOpenCode();
+    installNpmProject(".opencode/agents/root-prompt-reviewer.md");
+    discoverOpenCode();
     break;
   }
   case "cursor": {
@@ -290,12 +353,13 @@ switch (harness) {
     const plugin = JSON.parse(readFileSync(join(unpacked, ".cursor-plugin", "plugin.json"), "utf8"));
     assert.equal(existsSync(join(unpacked, ".claude-plugin")), false, "Cursor bundle includes Claude metadata");
     assert.ok(readFileSync(join(unpacked, plugin.logo)).length > 0, "Cursor plugin logo is missing");
+    installNpmProject(".cursor/agents/root-prompt-reviewer.md");
     const help = run("cursor-agent", ["--help"]);
     assert.ok(help.includes("--plugin-dir"), "Pinned Cursor CLI no longer exposes local plugin loading");
     const commands = run("cursor-agent", ["plugin", "--help"]);
     assert.ok(commands.includes("marketplace"), "Cursor plugin CLI is unavailable");
     report.discovery = "skipped";
-    report.limits.push("The unpacked bundle's project installer and preserved skill/agent resources are verified. Cursor CLI installation/version/help are exercised, but plugin/skill/native-agent discovery is SKIPPED: it requires an authenticated Cursor account or interactive app, and this release exposes no credential-free inventory/validation command or official loader SDK. Marketplace approval, authentication, and plugin installation are not claimed.");
+    report.limits.push("Archive-bundled and packed npm CLI project installation/update plus preserved skill/agent resources are verified. Cursor CLI installation/version/help are exercised, but plugin/skill/native-agent discovery is SKIPPED: it requires an authenticated Cursor account or interactive app, and this release exposes no credential-free inventory/validation command or official loader SDK. Marketplace approval, authentication, and plugin installation are not claimed.");
     console.log(`::notice title=Cursor discovery skipped::${report.limits[0]}`);
     break;
   }

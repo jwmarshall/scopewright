@@ -77,23 +77,32 @@ jobs:
           HARNESS: ${{ matrix.harness }}
         run: |
           echo "## $HARNESS" >> "$GITHUB_STEP_SUMMARY"
-          echo "Pinned real CLI version checks and staged package installation passed inside Docker." >> "$GITHUB_STEP_SUMMARY"
+          echo "Pinned real CLI versions, native release package coverage, and actual npm-pack CLI project installation/update passed inside Docker." >> "$GITHUB_STEP_SUMMARY"
           if [ "$HARNESS" = cursor ]; then
-            echo "Archive-unpacked self-contained project installation and preserved skill/agent resources passed. **Plugin/skill/native-agent discovery: SKIPPED**, not passed. Cursor requires an authenticated account or interactive app; its installed CLI exposes no credential-free inventory/validation command or official loader SDK. Marketplace approval, authentication, and plugin installation are not claimed." >> "$GITHUB_STEP_SUMMARY"
+            echo "Archive-bundled and npm-packed CLI project installation/update preserved skill/agent resources. **Plugin/skill/native-agent discovery: SKIPPED**, not passed. Cursor requires an authenticated account or interactive app; its installed CLI exposes no credential-free inventory/validation command or official loader SDK. Marketplace approval, authentication, and plugin installation are not claimed." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "Skill discovery and bundled-resource assertions passed using the real CLI or matching official installed SDK loader." >> "$GITHUB_STEP_SUMMARY"
           fi
           if [ "$HARNESS" = codex ] || [ "$HARNESS" = opencode ]; then
-            echo "Archive-unpacked self-contained project installation into .agents/skills and the harness-native project agent directory passed, followed by official discovery." >> "$GITHUB_STEP_SUMMARY"
+            echo "Separate archive-bundled and npm-packed CLI project installations passed official project skill discovery in .agents/skills and native project adapter resource checks." >> "$GITHUB_STEP_SUMMARY"
           fi
           if [ "$HARNESS" = claude ] || [ "$HARNESS" = pi ]; then
             echo "Installed the staged minimal harness package, not the repository checkout." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "$HARNESS" = pi ] || [ "$HARNESS" = omp ]; then
+            echo "Native package inventory and separate npm-installed project skill discovery passed through the matching official loader, with native package user state removed between scenarios." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "$HARNESS" = claude ] || [ "$HARNESS" = antigravity ]; then
+            echo "**npm project discovery: unverified.** Project resources are installed and preserved; only the separate native plugin path has credential-free CLI inventory coverage." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "$HARNESS" = gemini ]; then
+            echo "Native directory/archive extension coverage and separate npm-installed project skill inventory plus official agent parsing passed." >> "$GITHUB_STEP_SUMMARY"
           fi
           if [ "$HARNESS" = codex ]; then
             echo "**Native subagent validation: unverified.** Codex parses custom agent TOML lazily at spawn and exposes no offline custom-agent validation/list API." >> "$GITHUB_STEP_SUMMARY"
           fi
           if [ "$HARNESS" = omp ]; then
-            echo "OMP-only package staging, real CLI installation/inventory, package skill references, and native task-agent discovery passed. Parsed built-in tools are read/grep/glob; provider/model fields remain unpinned." >> "$GITHUB_STEP_SUMMARY"
+            echo "OMP-only native package inventory and npm-installed project skills/native reviewer discovery passed. Parsed built-in tools are read/grep/glob; provider/model fields remain unpinned." >> "$GITHUB_STEP_SUMMARY"
             echo "**Model execution and additive extension/MCP tool enforcement: unverified.** Local installation links the staged package; no credentials or model calls are used." >> "$GITHUB_STEP_SUMMARY"
           fi
           if [ "$HARNESS" = antigravity ]; then
